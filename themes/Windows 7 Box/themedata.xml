@@ -1,0 +1,30 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Windows 7 Box" Author="Fernando" Version="1.0" Copyright="GPL"/>
+<theme color="All" color_lang="white" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="380" Height="497"/>
+	<IconSettings X="208" Y="6" Width="56" Height="56" InsetX="3" InsetY="3" InsetWidth="48" InsetHeight="48"/>
+	<SearchBarSettings X="0" Y="0" Width="0" Height="0" Widget="None"/>
+	<ProgramListSettings X="2" Y="70" Width="188" Height="386" OnlyShowRecentApps="1" OnlyShowFavs="0"/>
+	<Capabilities HasIcon="1" HasSearch="0" HasFadeTransition="0"/>
+	<Button Name="Carpeta Personal"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Usuario&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-home.png" ButtonIconSel="" ButtonX="197" ButtonY="74" SubMenu="0" Command="Home" CloseMenu="1" Icon=""/>
+	<Button Name="Documentos"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Documentos&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-documents.png" ButtonIconSel="" ButtonX="197" ButtonY="104" SubMenu="0" Command="Documents" CloseMenu="1" Icon=""/>
+	<Button Name="Imágenes"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Imágenes&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-images.png" ButtonIconSel="" ButtonX="197" ButtonY="134" SubMenu="0" Command="Pictures" CloseMenu="1" Icon=""/>
+	<Button Name="Música"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Música&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-music.png" ButtonIconSel="" ButtonX="197" ButtonY="164" SubMenu="0" Command="Music" CloseMenu="1" Icon=""/>
+	<Button Name="Equipo"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Equipo&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="computer.png" ButtonIconSel="" ButtonX="197" ButtonY="194" SubMenu="0" Command="Computer" CloseMenu="1" Icon=""/>separator
+	<Button Name="Red"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Red&lt;/span&gt;"		TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gtk-network.png" ButtonIconSel="" ButtonX="197" ButtonY="224" SubMenu="0" Command="Network" CloseMenu="1" Icon=""/>
+	<Button Name="Elementos Recientes"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Recientes&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="document-open-recent.png" ButtonIconSel="" ButtonX="197" ButtonY="254" SubMenu="1" Command="4" CloseMenu="0" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="285" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Configuración del Sistema"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Configuración&lt;/span&gt;"			TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-control-center.png" ButtonIconSel="" ButtonX="197" ButtonY="292" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon=""/>
+	<Button Name="Centro de Software"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Software&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="emblem-package.png" ButtonIconSel="" ButtonX="197" ButtonY="322" SubMenu="0" Command="software-center" CloseMenu="1" Icon=""/>
+	<Button Name="Conexiones de Red"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Conectar a&lt;/span&gt;"			TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-network-properties.png" ButtonIconSel="" ButtonX="197" ButtonY="352" SubMenu="0" Command="Network Config" CloseMenu="1" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="383" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Zorin Group Forum"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Ayuda&lt;/span&gt;"		TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-help.png" ButtonIconSel="" ButtonX="197" ButtonY="389" SubMenu="0" Command="Help" CloseMenu="1" Icon=""/>
+	<Button Name="Acceso Universal"	Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed'&gt;Accesibilidad&lt;/span&gt;"				TextX="31" TextY="7" Image="m_button.png" ButtonIcon="universal-access.png" ButtonIconSel="" ButtonX="197" ButtonY="419" SubMenu="0" Command="gnome-control-center universal-access" CloseMenu="1" Icon=""/>
+	<Button Name="Cerrar sesión"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed' weight='bold'&gt;&lt;/span&gt;"				TextX="31" TextY="10" Image="m_sel.png" ButtonIcon="m_lock_icon.png" ButtonIconSel="m_lock_icon_sel.png" ButtonX="197" ButtonY="458" SubMenu="0" Command="gnome-session-quit --logout" CloseMenu="1" Icon=""/>
+	<Button Name="Apagar"		Markup="&lt;span foreground='white' font_desc='Ubuntu 12' stretch='semicondensed' weight='bold'&gt;&lt;/span&gt;"		TextX="31" TextY="10" Image="m_sel.png" ButtonIcon="m_power_icon.png" ButtonIconSel="m_power_icon_sel.png" ButtonX="251" ButtonY="458" SubMenu="0" Command="gnome-session-quit --power-off" CloseMenu="1" Icon=""/>
+	<Label Name="Usuario"		Markup="&lt;span foreground='white' font_desc='Ubuntu 15' &gt;[TEXT]&lt;/span&gt;" LabelX="265" LabelY="30" Command="whoami"/>
+	<Button Name="Todos los programas"	Markup="&lt;span foreground='black' font_desc='Ubuntu 11' stretch='semicondensed' weight='bold'&gt;Más programas&lt;/span&gt;"	TextX="31" TextY="7" Image="m_apps.png" ButtonIcon="m_all_apps.png" ButtonIconSel="" ButtonX="5" ButtonY="458" SubMenu="0" Command=":ALLAPPS:" CloseMenu="1" Icon="" ExecuteOnHover="1"/>
+</theme>
+</content>

@@ -1,0 +1,63 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Win7forG2" Author="Shaun Marolf" Version="3.0" Copyright="Artwork by unknown"/>
+# If only one theme type available then specify color='All'
+<theme color="white" color_lang="White" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<IconSettings X="302" Y="6" Width="65" Height="66" InsetX="6" InsetY="6" InsetWidth="46" InsetHeight="46"/>
+	#SearchBar: Widget can either be 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom'
+	#InsetX, Y = topleft location to start displaying text
+	#Widgetname = the file name of the python searchbar module without '.py' on the end.
+	<SearchBarSettings  X="21" Y="532" Width="222" Height="22" Widget="Custom" WidgetName="SearchBar" InitialText="Search programs and files" InsetX="6" InsetY="16" style = "italic" Background="m_searchbar_light.png"/>
+	<ProgramListSettings X="9" Y="41" Width="250" Height="473"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+
+	<Label Name="Username"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 15' stretch='normal' weight='normal'&gt;[TEXT]&lt;/span&gt;" LabelX="274" LabelY="70" Command="whoami"/>
+
+	<Button Name="Applications"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Applications&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="112" SubMenu="1" Command="1" CloseMenu="0" Icon="m_applications.png"/>
+
+	<Button Name="Favorites"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Favorites&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="136" SubMenu="1" Command="7" CloseMenu="0" Icon="m_favorites.png"/>
+
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="160" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+
+	<Button Name="Computer"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="164" SubMenu="1" Command="8" CloseMenu="0" Icon="m_computer.png"/>
+
+	<Button Name="Trash"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Trash&lt;/span&gt;"	TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="188" SubMenu="0" Command="Trash" CloseMenu="1" Icon="m_trash.png"/>
+
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="212" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+
+	<Button Name="Recent Documents"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Recent Documents&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="216" SubMenu="1" Command="4" CloseMenu="0" Icon="m_recentitems.png"/>
+
+	<Button Name="Recent Applications"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Recent Applications&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="240" SubMenu="1" Command="2" CloseMenu="0" Icon="m_recentapps.png"/>
+
+	<Button Name="Web Bookmarks"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Web Bookmarks&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="264" SubMenu="1" Command="10" CloseMenu="0" Icon="m_webbookmarks.png"/>
+	
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="288" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+
+	<Button Name="Control Center"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Control Center&lt;/span&gt;"	TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="292" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon="m_controlpanel.png"/>
+
+	<Button Name="Package Manager"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Package Manager&lt;/span&gt;"	TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="316" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon="m_synaptic.png"/>
+
+	<Button Name="Network Tools"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Network Tools&lt;/span&gt;"	TextX="8" TextY="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="340" SubMenu="0" Command="gnome-nettool" CloseMenu="1" Icon="m_networktools.png"/>
+
+	<Button Name="System Monitor"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;System Monitor&lt;/span&gt;"	TextX="8" TextY="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="364" SubMenu="0" Command="gnome-system-monitor" CloseMenu="1" Icon="m_systemmonitor.png"/>
+
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="388" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+
+	<Button Name="Terminal" Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Terminal&lt;/span&gt;"	TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="392" SubMenu="0" Command="gnome-terminal" CloseMenu="1" Icon="m_terminal.png"/>
+
+	<Button Name="Search"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Search&lt;/span&gt;"		TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="416" SubMenu="0" Command="Search" CloseMenu="1" Icon="m_search.png"/>
+
+
+	<Button Name="Help"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Help&lt;/span&gt;"	TextX="8" TextY="4" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="440" SubMenu="0" Command="Help" CloseMenu="1" Icon="m_help.png"/>
+
+	<Button Name="Run"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Run&lt;/span&gt;"		TextX="8" TextY="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="464" SubMenu="0" Command="Run" CloseMenu="1" Icon="m_run.png"/>
+
+	<Button Name="Power" Markup="" TextX="0" TextY="0" Image="m_power_sel.png" ButtonIcon="m_power.png" ButtonIconSel="m_power_sel.png" ButtonX="268" ButtonY="543" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+
+	<Button Name="Lock" Markup="" TextX="0" TextY="0" Image="m_lock_sel.png" ButtonIcon="m_lock.png" ButtonIconSel="m_lock_sel.png" ButtonX="307" ButtonY="543" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+
+	<Button Name="Logout" Markup="" TextX="0" TextY="0" Image="m_logout_sel.png" ButtonIcon="m_logout.png" ButtonIconSel="m_logout_sel.png" ButtonX="346" ButtonY="543" SubMenu="0" Command="gnome-session-save --logout-dialog" CloseMenu="1" Icon=""/>
+</theme>
+</content>
