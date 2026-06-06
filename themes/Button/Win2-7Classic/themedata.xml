@@ -1,0 +1,9 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="Win2-7Classic" Author="juandejesuss" Copyright="Artwork by unknown"/>
+<theme Top="0" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+        <Label Name="Start"	MarkupNormal="&lt;span foreground='#000' font_desc='Tahoma 8' stretch='normal' weight='bold'&gt;Start&lt;/span&gt;" LabelX="20" LabelY="1"/>
+	
+</theme>
+</content>

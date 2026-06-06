@@ -7,7 +7,7 @@ import tempfile
 import xml.etree.ElementTree as ET
 
 
-BASE_DIR = "/home/Reneto/XFCEMenu"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THEMES_DIR = os.path.join(BASE_DIR, "themes")
 
 

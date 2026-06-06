@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Windows 7 Start Menu" Author="Abhinav" Version="1.0" Copyright="Artwork by unknown"/>
+# If only one theme type available then specify color='All'
+<theme color="white" color_lang="White" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="409" Height="575"/>
+	<IconSettings X="302" Y="6" Width="65" Height="66" InsetX="6" InsetY="6" InsetWidth="46" InsetHeight="46"/>
+	#SearchBar: Widget can either be 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom'
+	#InsetX, Y = topleft location to start displaying text
+	#Widgetname = the file name of the python searchbar module without '.py' on the end.
+	<SearchBarSettings  X="21" Y="532" Width="222" Height="22" Widget="Custom" WidgetName="SearchBar" InitialText="Search programs and files" InsetX="6" InsetY="16" style = "italic" Background="m_searchbar_light.png"/>
+	<ProgramListSettings X="9" Y="41" Width="250" Height="473"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+	<Button Name="Home Folder"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Home Folder&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="76" SubMenu="0" Command="Home" CloseMenu="1" Icon="m_home.png"/>
+	<Button Name="Documents"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Documents&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="111" SubMenu="0" Command="Documents" CloseMenu="1" Icon="m_documents.png"/>
+	<Button Name="Pictures"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Pictures&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="146" SubMenu="0" Command="Pictures" CloseMenu="1" Icon="m_pictures.png"/>
+	<Button Name="Music"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Music&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="181" SubMenu="0" Command="Music" CloseMenu="1" Icon="m_music.png"/>
+	<Button Name="Videos"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Videos&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="216" SubMenu="0" Command="Games" CloseMenu="1" Icon="m_videos.png"/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="270" ButtonY="251" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Search"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Search&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="254" SubMenu="0" Command="Search" CloseMenu="1" Icon="m_search.png"/>
+	<Button Name="Show History"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Show History&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="m_submenu_icon.png" ButtonIconSel="" ButtonX="266" ButtonY="292" SubMenu="1" Command="4" CloseMenu="0" Icon="m_recentitems.png"/>
+	<Button Name="Computer"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="324" SubMenu="0" Command="Computer" CloseMenu="1" Icon="m_computer.png"/>
+	<Button Name="Network"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Network&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="359" SubMenu="0" Command="Network" CloseMenu="1" Icon="m_network.png"/>
+	<Button Name="Connect to Server"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Connect to Server&lt;/span&gt;"		TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="394" SubMenu="0" Command="Network Config" CloseMenu="1" Icon="m_connect.png"/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="270" ButtonY="429" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Control Center"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Control Center&lt;/span&gt;"	TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="432" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon="m_controlpanel.png"/>
+	<Button Name="Package Manager"	Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Package Manager&lt;/span&gt;"	TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="467" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon="m_synaptic.png"/>
+	<Button Name="Help"		Markup="&lt;span foreground='#FFFFFF' font_desc='Segoe UI 9' stretch='normal' weight='normal'&gt;Help&lt;/span&gt;"	TextX="8" TextY="8" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="502" SubMenu="0" Command="Help" CloseMenu="1" Icon="m_help.png"/>
+	<Button Name="Power"		Markup="" TextX="0" TextY="0" Image="m_power_sel.png" ButtonIcon="" ButtonIconSel="m_power_sel.png" ButtonX="268" ButtonY="544" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Button Name="Lock"		Markup="" TextX="0" TextY="0" Image="m_lock_sel.png" ButtonIcon="" ButtonIconSel="m_lock_sel.png" ButtonX="340" ButtonY="544" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+	<Button Name="Aux"		Markup="" TextX="0" TextY="0" Image="m_aux_sel.png" ButtonIcon="" ButtonIconSel="m_aux_sel.png" ButtonX="362" ButtonY="544" SubMenu="1" Command="3" CloseMenu="0" Icon=""/>
+</theme>
+</content>

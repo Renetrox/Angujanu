@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<theme Top="0" id="HasTop">
+<ContentData Name="Win7" Author="Erasmo Marín" Copyright="Microsoft Corporation. Use with a 40px height panel" id="Contentdata"/>
+</theme>
+</content>

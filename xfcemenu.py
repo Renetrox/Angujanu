@@ -13,7 +13,7 @@ from legacy_loader import load_menu_theme
 from command_mapper import run_command
 
 
-BASE_DIR = "/home/Reneto/XFCEMenu"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THEMES_DIR = os.path.join(BASE_DIR, "themes")
 
 
@@ -36,7 +36,6 @@ class XFCEMenuWindow(Gtk.Window):
         self.set_size_request(theme.width, theme.height)
         self.set_default_size(theme.width, theme.height)
 
-        # Parecido a GnoMenu: ventana RGBA + dibujo Cairo.
         self.setup_transparency()
 
         # Truco heredado de GnoMenu:
@@ -64,8 +63,7 @@ class XFCEMenuWindow(Gtk.Window):
         self.fixed.set_size_request(theme.width, theme.height)
         self.add(self.fixed)
 
-        # Para probar transparencia, lo dejamos desactivado por ahora.
-        # Este placeholder usa widgets GTK y puede pintar fondo propio.
+        # Temporalmente desactivado hasta crear lista real transparente.
         # self.draw_program_list_placeholder()
 
         self.draw_buttons()
@@ -79,10 +77,6 @@ class XFCEMenuWindow(Gtk.Window):
         GLib.idle_add(self.present)
 
     def setup_transparency(self):
-        """
-        Transparencia real para temas legacy con PNG RGBA.
-        Requiere compositor activo en XFCE.
-        """
         screen = self.get_screen()
 
         try:
@@ -137,9 +131,6 @@ class XFCEMenuWindow(Gtk.Window):
         )
 
     def on_realize(self, widget):
-        """
-        Cuando la ventana ya existe en X11/GDK, recién ahí se puede aplicar shape.
-        """
         GLib.idle_add(self.apply_window_shape)
 
     def theme_path(self, filename):
@@ -162,9 +153,6 @@ class XFCEMenuWindow(Gtk.Window):
             return None
 
     def on_draw(self, widget, cr):
-        """
-        Dibuja el fondo principal con Cairo.
-        """
         cr.set_operator(cairo.OPERATOR_CLEAR)
         cr.paint()
         cr.set_operator(cairo.OPERATOR_OVER)
@@ -176,10 +164,6 @@ class XFCEMenuWindow(Gtk.Window):
         return False
 
     def apply_window_shape(self):
-        """
-        Recorta la ventana usando el canal alfa del PNG de fondo.
-        Esto replica la idea de shape/mask del GnoMenu original.
-        """
         if self.shape_applied:
             return False
 
@@ -228,7 +212,12 @@ class XFCEMenuWindow(Gtk.Window):
                         x += 1
 
                     rect = cairo.RectangleInt(start_x, y, x - start_x, 1)
-                    region.union_rectangle(rect)
+
+                    try:
+                        region.union_rectangle(rect)
+                    except AttributeError:
+                        row_region = cairo.Region(rect)
+                        region.union(row_region)
                 else:
                     x += 1
 
@@ -248,10 +237,6 @@ class XFCEMenuWindow(Gtk.Window):
         return False
 
     def draw_program_list_placeholder(self):
-        """
-        Primera versión:
-        dibuja un espacio visual donde luego irá la lista real de apps.
-        """
         if not self.theme.program_list:
             return
 
@@ -283,6 +268,25 @@ class XFCEMenuWindow(Gtk.Window):
         for button in self.theme.buttons:
             self.draw_button(button)
 
+    def get_display_icon_pixbuf(self, pixbuf, has_label):
+        """
+        Algunos temas GnoMenu usan ButtonIcon como imagen ancha completa.
+        Para botones con texto, recortamos solo el icono izquierdo.
+        """
+        if not pixbuf:
+            return None
+
+        if has_label and pixbuf.get_width() > 64:
+            crop_w = min(28, pixbuf.get_width())
+            crop_h = min(26, pixbuf.get_height())
+
+            try:
+                return pixbuf.new_subpixbuf(0, 0, crop_w, crop_h)
+            except Exception:
+                return pixbuf
+
+        return pixbuf
+
     def draw_button(self, button):
         if button.name == ":SEPARATOR:":
             pixbuf = self.load_pixbuf(button.image)
@@ -295,31 +299,52 @@ class XFCEMenuWindow(Gtk.Window):
         event.set_visible_window(False)
 
         container = Gtk.Fixed()
+
         try:
             container.set_has_window(False)
         except Exception:
             pass
 
         bg_pixbuf = self.load_pixbuf(button.image)
-        icon_pixbuf = self.load_pixbuf(button.button_icon)
+        icon_pixbuf_raw = self.load_pixbuf(button.button_icon)
+        icon_sel_pixbuf_raw = self.load_pixbuf(button.button_icon_sel)
+
+        label_text = self.extract_label_text(button)
+        has_label = bool(label_text)
+
+        icon_pixbuf = self.get_display_icon_pixbuf(icon_pixbuf_raw, has_label)
+        icon_sel_pixbuf = self.get_display_icon_pixbuf(icon_sel_pixbuf_raw, has_label)
 
         width = 120
         height = 26
 
+        bg_widget = None
+        icon_widget = None
+
+        # Image suele ser hover/selección. Oculto por defecto.
         if bg_pixbuf:
-            bg = Gtk.Image.new_from_pixbuf(bg_pixbuf)
-            container.put(bg, 0, 0)
+            bg_widget = Gtk.Image.new_from_pixbuf(bg_pixbuf)
+            bg_widget.set_no_show_all(True)
+            bg_widget.hide()
+            container.put(bg_widget, 0, 0)
+
             width = max(width, bg_pixbuf.get_width())
             height = max(height, bg_pixbuf.get_height())
 
+        # Icono visible siempre.
         if icon_pixbuf:
-            icon = Gtk.Image.new_from_pixbuf(icon_pixbuf)
-            container.put(icon, 4, 2)
+            icon_widget = Gtk.Image.new_from_pixbuf(icon_pixbuf)
+
+            if has_label:
+                container.put(icon_widget, 4, 2)
+            else:
+                # Botones inferiores tipo apagar/bloquear.
+                container.put(icon_widget, 0, 0)
+
             width = max(width, icon_pixbuf.get_width())
             height = max(height, icon_pixbuf.get_height())
 
-        label_text = self.extract_label_text(button)
-
+        # Texto visible siempre.
         if label_text:
             label = Gtk.Label()
             label.set_use_markup(True)
@@ -341,10 +366,49 @@ class XFCEMenuWindow(Gtk.Window):
 
         event.connect("button-press-event", self.on_button_clicked, button)
 
+        event.connect(
+            "enter-notify-event",
+            self.on_button_enter,
+            button,
+            bg_widget,
+            icon_widget,
+            icon_pixbuf,
+            icon_sel_pixbuf
+        )
+
+        event.connect(
+            "leave-notify-event",
+            self.on_button_leave,
+            button,
+            bg_widget,
+            icon_widget,
+            icon_pixbuf
+        )
+
         if button.execute_on_hover:
             event.connect("enter-notify-event", self.on_button_hover, button)
 
         self.fixed.put(event, button.x, button.y)
+
+    def on_button_enter(self, widget, event, button, bg_widget, icon_widget,
+                        icon_pixbuf, icon_sel_pixbuf):
+        if bg_widget:
+            bg_widget.show()
+
+        if icon_widget and icon_sel_pixbuf:
+            icon_widget.set_from_pixbuf(icon_sel_pixbuf)
+
+        return False
+
+    def on_button_leave(self, widget, event, button, bg_widget, icon_widget,
+                        icon_pixbuf):
+        if bg_widget:
+            bg_widget.hide()
+
+        if icon_widget and icon_pixbuf:
+            icon_widget.set_from_pixbuf(icon_pixbuf)
+
+        return False
 
     def extract_label_text(self, button):
         if button.name.startswith(":"):
@@ -395,8 +459,6 @@ class XFCEMenuWindow(Gtk.Window):
             print("XFCEMenu: hover :ALLAPPS: todavía pendiente.")
 
     def on_focus_out(self, widget, event):
-        # En algunos XFCE esto puede cerrar demasiado rápido.
-        # Si molesta, comentar esta línea.
         self.destroy()
 
     def on_key_press(self, widget, event):
@@ -404,10 +466,6 @@ class XFCEMenuWindow(Gtk.Window):
             self.destroy()
 
     def position_near_bottom_left(self):
-        """
-        Posiciona el menú abajo a la izquierda.
-        Usa API moderna si está disponible, con fallback a la API vieja de GTK3.
-        """
         try:
             display = Gdk.Display.get_default()
             monitor = display.get_primary_monitor()
@@ -481,7 +539,6 @@ def main():
 
     app.connect("activate", on_activate)
 
-    # argparse ya consumió --theme. GTK no debe recibirlo.
     return app.run([sys.argv[0]])
 
 
