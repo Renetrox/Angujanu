@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="XP" Author="QB89Dragon" Copyright="Artwork by unknown"/>
+<theme Top="0" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+	<Label Name="Start"	MarkupNormal="&lt;span foreground='#FFFFFF' font_desc='sans 14' stretch='normal' style='italic' weight='bold'&gt;Start&lt;/span&gt;" LabelX="16" LabelY="2"/>
+</theme>
+</content>

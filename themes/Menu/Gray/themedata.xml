@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Gray" Author="Shaun Marolf" Version="1.0" Copyright="GPL"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#000000">
+	<Background Image="startmenu.png"/>
+	<WindowDimensions Width="370" Height="511"/>
+	<IconSettings X="9" Y="4" Width="56" Height="56" InsetX="5" InsetY="5" InsetWidth="44" InsetHeight="44"/>
+	<SearchBarSettings  X="74" Y="465" Width="246" Height="20" Widget="gtk"/>
+	<ProgramListSettings X="76" Y="57" Width="240" Height="393"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>\
+	<Label Name="Username"	Markup="&lt;span foreground='#dbdbdb' font_desc='Sui Generis 12' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="195" LabelY="5" Command="whoami"/>
+	<Label Name="System"	Markup="&lt;span foreground='#dbdbdb' font_desc='Sui Generis 12' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="195" LabelY="25" Command="lsb_release -d | sed -e 's/.*: //' | awk '{print $2,$3}'"/>
+	<Tab Name="Applications"	Markup="&lt;&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="applications-accessories.png" TabX="33" TabY="62" SubMenu="1" Command="1" CloseMenu="0" Icon="applications-accessories.png" AddBackButton='0'/>
+	<Tab Name="Computer"	Markup="&lt;s&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="computer.png" TabX="33" TabY="118" SubMenu="1" Command="8" CloseMenu="0" Icon="computer.png" AddBackButton='0'/>
+	<Tab Name="Favorites"	Markup="&lt; &gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="emblem-favorite.png" TabX="33" TabY="174" SubMenu="1" Command="7" CloseMenu="0" Icon="emblem-favorite.png" AddBackButton='0'/>
+	<Tab Name="Recent Files"	Markup="&lt;s&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="document-open-recent.png" TabX="33" TabY="230" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+<Tab Name="Recent Apps"	Markup="&lt;s&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="applications-other.png" TabX="33" TabY="286" SubMenu="1" Command="2" CloseMenu="0" Icon="applications-other.png" AddBackButton='0'/>
+	<Tab Name="Web Bookmarks"	Markup="&lt;s&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="applications-internet.png" TabX="33" TabY="342" SubMenu="1" Command="10" CloseMenu="0" Icon="applications-internet.png" AddBackButton='0'/>
+	<Tab Name="Leave"	Markup="&lt;&gt;&lt;&gt;"		TextX="0" TextY="0" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIcon="system-shutdown.png" TabX="33" TabY="398" SubMenu="1" Command="9" CloseMenu="0" Icon="system-shutdown.png" AddBackButton='0'/>
+	<Button Name="Search" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="search.png" ButtonIconSel="" ButtonX="323" ButtonY="91" SubMenu="0" Command="Search" CloseMenu="1" Icon=""/>
+	<Button Name="Control Panel" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="m_controlcenter.png" ButtonIconSel="" ButtonX="323" ButtonY="166" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon=""/>
+	<Button Name="Package Manager" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="emblem-package.png" ButtonIconSel="" ButtonX="323" ButtonY="241" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon=""/>
+	<Button Name="Terminal" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="terminal.png" ButtonIconSel="" ButtonX="323" ButtonY="316" SubMenu="0" Command="gnome-terminal" CloseMenu="1" Icon=""/>
+	<Button Name="Help" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="gnome-help.png" ButtonIconSel="" ButtonX="323" ButtonY="391" SubMenu="0" Command="Help" CloseMenu="1" Icon=""/>
+	<Button Name="Trash" Markup="" TextX="0" TextY="0" Image="m_button.png" ButtonIcon="user-trash.png" ButtonIconSel="" ButtonX="323" ButtonY="460" SubMenu="0" Command="Trash" CloseMenu="1" Icon=""/>
+</theme>
+</content>

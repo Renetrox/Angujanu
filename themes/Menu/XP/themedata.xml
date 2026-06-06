@@ -1,0 +1,34 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="XP" Author="Whise" Version="1.0" Copyright="Artwork by TImemaster25"/>
+# If only one theme type available then specify color='All'
+<theme color="white" color_lang="white" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="380" Height="497"/>
+	<IconSettings X="11" Y="7" Width="56" Height="56" InsetX="2" InsetY="2" InsetWidth="48" InsetHeight="48"/>
+	#SearchBar: Widget can either be 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom'
+	#InsetX, Y = topleft location to start displaying text
+	#Widgetname = the file name of the python searchbar module without '.py' on the end.
+	<SearchBarSettings X="0" Y="0" Width="0" Height="0" Widget="None"/>
+	<ProgramListSettings X="2" Y="70" Width="188" Height="350" OnlyShowRecentApps="0" OnlyShowFavs="1"/>
+	<Capabilities HasIcon="1" HasSearch="0" HasFadeTransition="0"/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+	<Button Name="Documents"	Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;Documents&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-documents.png" ButtonIconSel="" ButtonX="196" ButtonY="73" SubMenu="0" Command="Documents" CloseMenu="1" Icon=""/>
+	<Button Name="Show History"	Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;Show History&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="document-open-recent.png" ButtonIconSel="" ButtonX="196" ButtonY="103" SubMenu="1" Command="4" CloseMenu="0" Icon=""/>
+	<Button Name="Pictures"		Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;Pictures&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-images.png" ButtonIconSel="" ButtonX="196" ButtonY="133" SubMenu="0" Command="Pictures" CloseMenu="1" Icon=""/>
+	<Button Name="Music"		Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;Music&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="folder-music.png" ButtonIconSel="" ButtonX="196" ButtonY="163" SubMenu="0" Command="Music" CloseMenu="1" Icon=""/>
+	<Button Name="Computer"	Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;Computer&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="computer.png" ButtonIconSel="" ButtonX="196" ButtonY="193" SubMenu="0" Command="Computer" CloseMenu="1" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="196" ButtonY="223" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Control Center"	Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Control Center&lt;/span&gt;"			TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-control-center.png" ButtonIconSel="" ButtonX="196" ButtonY="230" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon=""/>
+	<Button Name="Connect To"		Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Connect To&lt;/span&gt;"			TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-network-properties.png" ButtonIconSel="" ButtonX="196" ButtonY="260" SubMenu="0" Command="Network Config" CloseMenu="1" Icon=""/>
+	<Button Name="Printer"		Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Printer&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="printer.png" ButtonIconSel="" ButtonX="196" ButtonY="290" SubMenu="0" Command="Printer" CloseMenu="1" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="196" ButtonY="322" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Help"		Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Help&lt;/span&gt;"		TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gnome-help.png" ButtonIconSel="" ButtonX="196" ButtonY="328" SubMenu="0" Command="Help" CloseMenu="1" Icon=""/>
+	<Button Name="Search"		Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Search&lt;/span&gt;"				TextX="31" TextY="7" Image="m_button.png" ButtonIcon="search.png" ButtonIconSel="" ButtonX="196" ButtonY="358" SubMenu="0" Command="Search" CloseMenu="1" Icon=""/>
+	<Button Name="Run Application"		Markup="&lt;span foreground='black' font_desc='sans 10' stretch='semicondensed'&gt;Run Application&lt;/span&gt;"				TextX="31" TextY="7" Image="m_button.png" ButtonIcon="gtk-execute.png" ButtonIconSel="" ButtonX="196" ButtonY="388" SubMenu="0" Command="Run" CloseMenu="1" Icon=""/>
+	<Button Name="Log Out"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 10' stretch='semicondensed'&gt;Log Out&lt;/span&gt;"				TextX="30" TextY="9" Image="m_sel.png" ButtonIcon="m_lock_icon.png" ButtonIconSel="m_lock_icon_sel.png" ButtonX="179" ButtonY="462" SubMenu="0" Command="Logout" CloseMenu="1" Icon=""/>
+	<Button Name="Shut Down..."		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 10' stretch='semicondensed'&gt;Shut Down...&lt;/span&gt;"		TextX="30" TextY="9" Image="m_sel.png" ButtonIcon="m_power_icon.png" ButtonIconSel="m_power_icon_sel.png" ButtonX="248" ButtonY="462" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Label Name="Username"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 16' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="70" LabelY="22" Command="whoami"/>
+	<Button Name="All Applications"	Markup="&lt;span foreground='#0a246a' font_desc='sans 10' stretch='semicondensed' weight='bold'&gt;All Applications&lt;/span&gt;"	TextX="31" TextY="7" Image="m_button.png" ButtonIcon="m_all_apps.png" ButtonIconSel="" ButtonX="4" ButtonY="425" SubMenu="0" Command=":ALLAPPS:" CloseMenu="1" Icon="" ExecuteOnHover="1"/>
+</theme>
+</content>

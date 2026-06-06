@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Glow" Author="Whise" Version="1.0" Copyright="Artwork by unknown"/>
+<theme color="All" color_lang="All" colorvalue="#29d9e7">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="409" Height="575"/>
+	<IconSettings X="300" Y="6" Width="65" Height="66" InsetX="9" InsetY="7" InsetWidth="48" InsetHeight="45"/>
+	<SearchBarSettings X="9" Y="546" Width="245" Height="21" Widget="GTK"/>
+	<ProgramListSettings X="9" Y="96" Width="245" Height="440"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>
+	<Button Name="Home Folder"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Home Folder&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="76" SubMenu="0" Command="Home" CloseMenu="1" Icon="folder-home.png"/>
+	<Button Name="Documents"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Documents&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="111" SubMenu="0" Command="Documents" CloseMenu="1" Icon="folder-documents.png"/>
+	<Button Name="Pictures"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Pictures&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="146" SubMenu="0" Command="Pictures" CloseMenu="1" Icon="folder-images.png"/>
+	<Button Name="Music"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Music&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="181" SubMenu="0" Command="Music" CloseMenu="1" Icon="folder-music.png"/>
+	<Button Name="Videos"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Videos&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="216" SubMenu="0" Command="Videos" CloseMenu="1" Icon="folder-videos.png"/>
+	<Button Name="Search"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Search&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="254" SubMenu="0" Command="Search" CloseMenu="1" Icon="search.png"/>
+	<Button Name="Recent Items"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Recent Items&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="m_submenu_icon.png" ButtonIconSel="" ButtonX="266" ButtonY="289" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png"/>
+	<Button Name="Computer"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="324" SubMenu="0" Command="Computer" CloseMenu="1" Icon="computer.png"/>
+	<Button Name="Network"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Network&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="359" SubMenu="0" Command="Network" CloseMenu="1" Icon="gtk-network.png"/>
+	<Button Name="Connect To"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Connect To&lt;/span&gt;"		TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="394" SubMenu="0" Command="Network Config" CloseMenu="1" Icon="gnome-network-properties.png"/>
+	<Button Name="Control Panel"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Control Panel&lt;/span&gt;"	TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="432" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon="gnome-control-center.png"/>
+	<Button Name="Package Manager"	Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Package Manager&lt;/span&gt;"	TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="467" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon="emblem-package.png"/>
+	<Button Name="Help"		Markup="&lt;span foreground='#29d9e7' font_desc='sans 8' stretch='normal' weight='normal'&gt;Help&lt;/span&gt;"	TextX="8" TextY="10" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="266" ButtonY="502" SubMenu="0" Command="Help" CloseMenu="1" Icon="gnome-help.png"/>
+	<Button Name="Power"		Markup="" TextX="0" TextY="0" Image="m_power_sel.png" ButtonIcon="m_power.png" ButtonIconSel="m_power_sel.png" ButtonX="266" ButtonY="544" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Button Name="Lock"		Markup="" TextX="0" TextY="0" Image="m_lock_sel.png" ButtonIcon="m_lock.png" ButtonIconSel="m_lock_sel.png" ButtonX="320" ButtonY="544" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+	<Button Name="Aux"		Markup="" TextX="0" TextY="0" Image="m_aux_sel.png" ButtonIcon="m_aux.png" ButtonIconSel="m_aux_sel.png" ButtonX="372" ButtonY="544" SubMenu="1" Command="3" CloseMenu="0" Icon=""/>
+</theme>
+</content>

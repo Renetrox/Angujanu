@@ -1,0 +1,27 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="GnoMenu default" Author="Helder Fraga" Version="1.0" Copyright="GPL"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#ffffff">
+	<Background Image="startmenu.png"/>
+	<WindowDimensions Width="400" Height="510"/>
+	<IconSettings X="16" Y="13" Width="66" Height="55" InsetX="6" InsetY="6" InsetWidth="44" InsetHeight="44"/>
+	<SearchBarSettings  X="110" Y="40" Width="260" Height="20" Widget="gtk"/>
+	<ProgramListSettings X="91" Y="80" Width="274" Height="371"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="0"/>\
+	<Label Name="Username"	Markup="&lt;span foreground='#dbdbdb' font_desc='Sui Generis 12' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="110" LabelY="18" Command="whoami"/>
+
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#000000' font_desc='Sans 6' stretch='semicondensed'&gt;Favorites&lt;/span&gt;"		TextX="0" TextY="60" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="emblem-favorite.png" TabX="18" TabY="78" SubMenu="1" Command="7" CloseMenu="0" Icon="" AddBackButton='0'/>
+
+	<Tab Name="Applications"	Markup="&lt;span foreground='#000000' font_desc='Sans 6' stretch='semicondensed'&gt;Applications&lt;/span&gt;"		TextX="0" TextY="60" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="applications-accessories.png" TabX="18" TabY="153"   SubMenu="1" Command="1" CloseMenu="0" Icon="" AddBackButton='0'/>
+
+	<Tab Name="Computer"	Markup="&lt;span foreground='#000000' font_desc='Sans 6' stretch='semicondensed'&gt;Computer&lt;/span&gt;"		TextX="0" TextY="60" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="computer.png" TabX="18" TabY="228" SubMenu="1" Command="8" CloseMenu="0" Icon="computer.png" AddBackButton='0'/>
+
+<Tab Name="Web Bookmarks"	Markup="&lt;span foreground='#000000' font_desc='Sans 6' stretch='semicondensed'&gt;Web Bookmarks&lt;/span&gt;"		TextX="0" TextY="60" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="applications-internet.png" TabX="18" TabY="303" SubMenu="1" Command="10" CloseMenu="0" Icon="applications-internet.png" AddBackButton='0'/>
+
+	<Tab Name="Shutdown"	Markup="&lt;span foreground='#000000' font_desc='Sans 6' stretch='semicondensed'&gt;Shutdown&lt;/span&gt;"		TextX="0" TextY="60" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="system-shutdown.png" TabX="18" TabY="378" SubMenu="1" Command="9" CloseMenu="0" Icon="system-shutdown.png" AddBackButton='0'/>
+
+<Tab Name="Recent Items"	Markup="&lt;span foreground='#000000' font_desc='Sans 7' stretch='semicondensed'&gt;Recent Items&lt;/span&gt;"		TextX="38" TextY="20" InvertTextColorOnSel='1' Image="" ImageSel="m_tab2.png"  TabIconX="8" TabIconY="8" TabIcon="document-open-recent.png" TabX="87" TabY="451" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+<Tab Name="Recent Applications"	Markup="&lt;span foreground='#000000' font_desc='Sans 7' stretch='semicondensed'&gt;Recent Applications&lt;/span&gt;"		TextX="38" TextY="20" InvertTextColorOnSel='1' Image="" ImageSel="m_tab2.png" TabIconX="8" TabIconY="8" TabIcon="applications-other.png" TabX="228" TabY="451" SubMenu="1" Command="2" CloseMenu="0" Icon="applications-other.png" AddBackButton='0'/>
+</theme>
+</content>

@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="Ubuntu" Author="Whise" Copyright="GPL - mhancoc7"/>
+<theme Top="1" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+	<Top Image="start-here-top.png" ImagePressed="start-here-top-depressed.png" ImageHover="start-here-top-glow.png"/>
+</theme>
+</content>

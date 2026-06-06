@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="Black-White 2" Author="2.0" Copyright="GPL, thanks to DBGthekafu for Black-White 2"/>
+<theme Top="0" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+</theme>
+</content>

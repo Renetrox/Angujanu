@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Lancelot" Author="Helder Fraga" Version="1.0" Copyright="GPL"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#ffffff">
+	<Background Image="start-menu3.png"/>
+	<WindowDimensions Width="543" Height="519"/>
+	<SearchBarSettings  X="135" Y="13" Width="400" Height="20" Widget="gtk"/>
+	<ProgramListSettings X="140" Y="42" Width="390" Height="420"/>
+	<Capabilities HasSearch="1" HasIcon="0" HasFadeTransition="0"/>\
+	<Label Name="Username"	Markup="&lt;span foreground='#dbdbdb' font_desc='Sui Generis 12' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="20" LabelY="480" TextAlignment="0" Command="whoami"/>
+
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Favorites&lt;/span&gt;"		TextX="0" TextY="70" TextAlignment="1" InvertTextColorOnSel='0' Image="m_tab.png" ImageSel="m_tab_sel.png" TabIcon="emblem-favorite.png" TabX="7" TabY="360" TabIconSize="48" TabIconX="40" TabIconY="15"  SubMenu="1" Command="7" CloseMenu="0" Icon="emblem-favorite.png" AddBackButton='0'/>
+
+	<Tab Name="Applications"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Applications&lt;/span&gt;"		TextX="0" TextY="70" TextAlignment="1" InvertTextColorOnSel='0' Image="m_tab.png" ImageSel="m_tab_sel.png" TabIcon="applications-accessories.png" TabX="7" TabY="253" TabIconSize="48" TabIconX="40" TabIconY="15" SubMenu="1" Command="1" CloseMenu="0" Icon="applications-accessories.png" AddBackButton='0'/>
+
+	<Tab Name="Computer"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Computer&lt;/span&gt;"		TextX="0" TextY="70" TextAlignment="1" InvertTextColorOnSel='0' Image="m_tab.png" ImageSel="m_tab_sel.png" TabIcon="computer.png" TabX="7" TabY="146" TabIconSize="48" TabIconX="40" TabIconY="15" SubMenu="1" Command="8" CloseMenu="0" Icon="computer.png" AddBackButton='0'/>
+
+<Tab Name="Recent Items"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Recent Items&lt;/span&gt;"		TextX="0" TextY="70" TextAlignment="1" InvertTextColorOnSel='0' Image="m_tab.png" ImageSel="m_tab_sel.png" TabIcon="document-open-recent.png" TabX="7" TabY="39" TabIconSize="48" TabIconX="40" TabIconY="15" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+
+ <Button Name="Lock" Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Lock&lt;/span&gt;" TextX="34" TextY="5" ImageBack="m_button.png" Image="m_button_sel.png" ButtonIcon="lock.png" ButtonIconX="2" ButtonIconY="2" ButtonIconSel="" ButtonX="140" ButtonY="480" SubMenu="0" Command="Lock" CloseMenu="1" Icon="system-switch-user.png"/>
+
+ <Button Name="Logout" Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Logout&lt;/span&gt;" TextX="34" TextY="5" ImageBack="m_button.png" Image="m_button_sel.png" ButtonIcon="system-switch-user.png"  ButtonIconX="2" ButtonIconY="2" ButtonIconSel="" ButtonX="280" ButtonY="480" SubMenu="0" Command="LogoutNow" CloseMenu="1" Icon="system-switch-user.png"/>
+
+ <Button Name="Shutdown" Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Shutdown&lt;/span&gt;" TextX="34" TextY="5" ImageBack="m_button.png" Image="m_button_sel.png" ButtonIcon="system-shutdown.png" ButtonIconX="2" ButtonIconY="2" ButtonIconSel="" ButtonX="419" ButtonY="480" SubMenu="0" Command="Shutdown" CloseMenu="1" Icon="system-switch-user.png"/>
+
+</theme>
+</content>

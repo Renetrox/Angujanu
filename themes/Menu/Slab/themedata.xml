@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Slab" Author="Whise" Version="1.0" Copyright="Artwork by Whise"/>
+# If only one theme type available then specify color='All'
+<theme color="All" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="560" Height="424"/>
+	<IconSettings X="10" Y="6" Width="65" Height="66" InsetX="6" InsetY="6" InsetWidth="46" InsetHeight="46"/>
+	<SearchBarSettings  X="107" Y="20" Width="259" Height="26" Widget="Cairo" BackColor="#FFFFFF" BorderColor="#7DABDA" TextColor="#000000"/>
+	<ProgramListSettings X="4" Y="84" Width="366" Height="336"/>
+	<Capabilities HasSearch="1" HasIcon="0" HasFadeTransition="0"/>
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Favorites&lt;/span&gt;"		TextX="10" TextY="6" InvertTextColorOnSel='1' Image="but.png" ImageSel="tab.png" TabIcon="" TabX="10" TabY="55" SubMenu="1" Command="7" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+	<Tab Name="Applications"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Applications&lt;/span&gt;"		TextX="10" TextY="6" InvertTextColorOnSel='1' Image="but.png" ImageSel="tab.png" TabIcon="" TabX="100" TabY="55" SubMenu="1" Command="1" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+	<Tab Name="Computer"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="10" TextY="6" InvertTextColorOnSel='1' Image="but.png" ImageSel="tab.png" TabIcon="" TabX="190" TabY="55" SubMenu="1" Command="8" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+	<Tab Name="Recently Used"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 8' stretch='normal' weight='normal'&gt;Recently Used&lt;/span&gt;"		TextX="8" TextY="6" InvertTextColorOnSel='1' Image="but.png" ImageSel="tab.png" TabIcon="" TabX="280" TabY="55" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0'/>
+	<Label Name="System"	Markup="&lt;span foreground='#0a246a' font_desc='sans 8' stretch='semicondensed' weight='bold' &gt;System&lt;/span&gt;" LabelX="380" LabelY="15" Command=""/>
+	<Button Name="Help"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Help&lt;/span&gt;"	TextX="31" TextY="7" Image="but2.png" ButtonIcon="gnome-help.png" ButtonIconSel="" ButtonX="380" ButtonY="43" SubMenu="0" Command="Help" CloseMenu="1" Icon=""/>
+	<Button Name="Control Center"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Control Center&lt;/span&gt;"	TextX="31" TextY="7" Image="but2.png" ButtonIcon="gnome-control-center.png" ButtonIconSel="" ButtonX="380" ButtonY="73" SubMenu="0" Command="Control Panel" CloseMenu="0" Icon=""/>
+	<Button Name="Package Manager"		Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Package Manager&lt;/span&gt;"	TextX="31" TextY="7" Image="but2.png" ButtonIcon="emblem-package.png" ButtonIconSel="" ButtonX="380" ButtonY="103" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon=""/>
+	<Button Name="Install Software"		Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Install Software&lt;/span&gt;"	TextX="31" TextY="7" Image="but2.png" ButtonIcon="system-software-install.png" ButtonIconSel="" ButtonX="380" ButtonY="133" SubMenu="0" Command="gnome-app-install" CloseMenu="1" Icon=""/>
+	<Button Name="Lock Screen"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Lock Screen&lt;/span&gt;"	TextX="31" TextY="7" Image="but2.png" ButtonIcon="lock.png" ButtonIconSel="" ButtonX="380" ButtonY="163" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+	<Button Name="Logout"		Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Logout&lt;/span&gt;"		TextX="31" TextY="7" Image="but2.png" ButtonIcon="system-switch-user.png" ButtonIconSel="" ButtonX="380" ButtonY="193" SubMenu="0" Command="Logout" CloseMenu="1" Icon=""/>
+	<Button Name="Shutdown"		Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed' weight='normal'&gt;Shutdown&lt;/span&gt;"		TextX="31" TextY="7" Image="but2.png" ButtonIcon="system-shutdown.png" ButtonIconSel="" ButtonX="380" ButtonY="223" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Label Name="Status"	Markup="&lt;span foreground='#0a246a' font_desc='sans 8' stretch='semicondensed' weight='bold'&gt;Status&lt;/span&gt;" LabelX="380" LabelY="270" Command=""/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;User : [TEXT]&lt;/span&gt;" LabelX="390" LabelY="300" Command="whoami"/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;Distro : [TEXT]&lt;/span&gt;" LabelX="390" LabelY="330" Command="lsb_release -d | sed -e 's/.*: //' | awk '{print $2,$3}'"/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;Hdd : [TEXT] Used&lt;/span&gt;" LabelX="390" LabelY="360" Command="df / -h -P | grep '% /' |  awk '{print $5}'"/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;IP : [TEXT]&lt;/span&gt;" LabelX="390" LabelY="390" Command="/sbin/ip route | grep 'src ' | cut -d c -f3 "/>
+	<Label Name="Search"	Markup="&lt;span foreground='#000000' font_desc='sans 10' stretch='semicondensed'&gt;Search:&lt;/span&gt;" LabelX="44" LabelY="24" Command=""/>
+	<Image Name="Search" Image="search.png" ImageX="8" ImageY="16"/>
+</theme>
+</content>

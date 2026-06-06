@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="GnoBlue" Author="Whise" Copyright="GPL - grahambini"/>
+<theme Top="0" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+</theme>
+</content>

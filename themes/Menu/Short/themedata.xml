@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Short" Author="skitzware" Version="1.0" Copyright="Artwork and Design Copyright Skitzware Corporation"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#313131">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="350" Height="281"/>
+	<IconSettings X="0" Y="0" Width="0" Height="0" InsetX="0" InsetY="0" InsetWidth="0" InsetHeight="0"/>
+	#SearchBar: Widget can either be 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom'
+	#InsetX, Y = topleft location to start displaying text
+	#Widgetname = the file name of the python searchbar module without '.py' on the end.
+	<SearchBarSettings  X="4" Y="254" Width="170" Height="19" Widget="Custom" WidgetName="SearchBar_light" InitialText="Start Search" InsetX="6" InsetY="16" Background="searchbar_light.png"/>
+	<ProgramListSettings X="3" Y="55" Width="173" Height="164" OnlyShowFavs="1"/>
+	<Capabilities HasSearch="1" HasIcon="0" HasFadeTransition="0"/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+	<Button Name="Home Folder"	Markup="&lt;span foreground='#d4d4d4' font_desc='sans 8' stretch='normal' weight='normal'&gt;Home Folder&lt;/span&gt;"		TextX="8" TextY="10" TextAlignment="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="70" SubMenu="0" Command="Home" CloseMenu="1" Icon="folder-home.png"/>
+	<Button Name="Control Panel"	Markup="&lt;span foreground='#d4d4d4' font_desc='sans 8' stretch='normal' weight='normal'&gt;Control Panel&lt;/span&gt;"		TextX="8" TextY="10" TextAlignment="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="105" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon="gnome-control-center.png"/>
+	<Button Name="Package Manager"	Markup="&lt;span foreground='#d4d4d4' font_desc='sans 8' stretch='normal' weight='normal'&gt;Package Manager&lt;/span&gt;"		TextX="8" TextY="10" TextAlignment="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="140" SubMenu="0" Command="Package Manager" CloseMenu="0" Icon="emblem-package.png"/>
+	<Button Name="Connect To"	Markup="&lt;span foreground='#d4d4d4' font_desc='sans 8' stretch='normal' weight='normal'&gt;Connect To&lt;/span&gt;"		TextX="8" TextY="10" TextAlignment="2" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="197" ButtonY="175" SubMenu="0" Command="Network Config" CloseMenu="0" Icon="gtk-network.png"/>
+	<Button Name="All Applications"		Markup="" TextX="0" TextY="0" Image="m_all_apps_sel.png" ButtonIcon="m_all_apps.png" ButtonIconSel="m_all_apps_sel.png" ButtonX="55" ButtonY="231" SubMenu="0" Command=":ALLAPPS:" CloseMenu="1" Icon=""/>
+	<Button Name="Power"		Markup="" TextX="0" TextY="0" Image="m_power_sel.png" ButtonIcon="m_power.png" ButtonIconSel="m_power_sel.png" ButtonX="185" ButtonY="257" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Button Name="Lock"		Markup="" TextX="0" TextY="0" Image="m_lock_sel.png" ButtonIcon="m_lock.png" ButtonIconSel="m_lock_sel.png" ButtonX="241" ButtonY="257" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+	<Button Name="Aux"		Markup="" TextX="0" TextY="0" Image="m_aux_sel.png" ButtonIcon="m_aux.png" ButtonIconSel="m_aux_sel.png" ButtonX="314" ButtonY="257" SubMenu="1" Command="3" CloseMenu="0" Icon=""/>
+</theme>
+</content>

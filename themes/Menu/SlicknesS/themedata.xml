@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="SlicknesS" Author="2.0" Version="1.0" Copyright="License is GPL, thanks to TheRob for SlicknesS and DBGthekafu for Black-White 2"/>
+# If only one theme type available then specify color='All'
+<theme color="white" color_lang="White" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="380" Height="519"/>
+	<IconSettings X="21" Y="12" Width="65" Height="66" InsetX="7" InsetY="7" InsetWidth="48" InsetHeight="48"/>
+	#SearchBar: Widget can either be 'Cairo', 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom' or 'Cairo'
+	<SearchBarSettings X="115" Y="19" Width="248" Height="21" Widget="Cairo" BackColor="#FFFFFF" BorderColor="#000000" TextColor="#000000" />
+# WidgetName="SearchBar" InitialText="Search" InsetX="20" InsetY="15" Background="searchbar.png"/ >
+	<ProgramListSettings X="116" Y="65" Width="242" Height="394" Background=""/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="0"/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="8" ButtonY="113" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Home Folder"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Home Folder&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="115" SubMenu="0" Command="Home" CloseMenu="1" Icon=""/>
+	<Button Name="Documents"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Documents&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="140" SubMenu="0" Command="Documents" CloseMenu="1" Icon=""/>
+	<Button Name="Pictures"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Pictures&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="165" SubMenu="0" Command="Pictures" CloseMenu="1" Icon=""/>
+	<Button Name="Music"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Music&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="190" SubMenu="0" Command="Music" CloseMenu="1" Icon=""/>
+	<Button Name="Videos"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Videos&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="215" SubMenu="0" Command="Videos" CloseMenu="1" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="8" ButtonY="240" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Search"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Search&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="242" SubMenu="0" Command="Search" CloseMenu="1" Icon=""/>
+	<Button Name="Recent Items"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Recent Items&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="267" SubMenu="1" Command="4" CloseMenu="0" Icon=""/>
+	<Button Name="Computer"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="292" SubMenu="0" Command="Computer" CloseMenu="1" Icon=""/>
+	<Button Name="Network"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Network&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="317" SubMenu="0" Command="Network" CloseMenu="1" Icon=""/>
+	<Button Name="Connect To"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Connect To&lt;/span&gt;"		TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="342" SubMenu="0" Command="Network Config" CloseMenu="1" Icon=""/>
+	<Button Name=":SEPARATOR:"	Markup="" TextX="0" TextY="0" Image="m_separator.png" ButtonIcon="" ButtonIconSel="" ButtonX="8" ButtonY="367" SubMenu="0" Command="0" CloseMenu="0" Icon=""/>
+	<Button Name="Preferences"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Preferences&lt;/span&gt;"	TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="369" SubMenu="0" Command="Control Panel" CloseMenu="1" Icon=""/>
+	<Button Name="Package Manager"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Package Manager&lt;/span&gt;"	TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="394" SubMenu="0" Command="Package Manager" CloseMenu="1" Icon=""/>
+	<Button Name="Help"		Markup="&lt;span foreground='#FFFFFF' font_desc='sans 6' stretch='normal' weight='normal'&gt;Help&lt;/span&gt;"	TextX="8" TextY="6" Image="m_button.png" ButtonIcon="" ButtonIconSel="" ButtonX="30" ButtonY="419" SubMenu="0" Command="Help" CloseMenu="1" Icon=""/>
+	<Button Name="Power"		Markup="" TextX="0" TextY="0" Image="m_power_sel.png" ButtonIcon="m_power.png" ButtonIconSel="m_power_sel.png" ButtonX="319" ButtonY="478" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+	<Button Name="Lock"		Markup="" TextX="0" TextY="0" Image="m_lock_sel.png" ButtonIcon="m_lock.png" ButtonIconSel="m_lock_sel.png" ButtonX="273" ButtonY="477" SubMenu="0" Command="Lock" CloseMenu="1" Icon=""/>
+</theme>
+
+</content>

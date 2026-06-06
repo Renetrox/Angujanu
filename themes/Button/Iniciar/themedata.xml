@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="Iniciar" Author="Whise" Copyright="GPL"/>
+<theme Top="0" id="HasTop">
+	<Background Image="start-here.png" ImagePressed="start-here-depressed.png" ImageHover="start-here-glow.png"/>
+	<Label Name="Start"	MarkupNormal="&lt;span foreground='#FFFFFF' font_desc='sans 13' stretch='normal' style='normal' weight='bold'&gt;Start&lt;/span&gt;" LabelX="30" LabelY="2"/>
+</theme>
+</content>

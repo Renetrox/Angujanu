@@ -1,0 +1,36 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="iTheme" Author="whise" Version="0.1" Copyright="GPL"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#323232">
+	<Background Image="startmenu.png"/>
+	<WindowDimensions Width="376" Height="536"/>
+	<SearchBarSettings  X="150" Y="25" Width="218" Height="22" Widget="Custom" WidgetName="SearchBar" InitialText="Start Search" TextColor="#000000" InsetX="20" InsetY="16" Background="searchframe.png"/>
+	<IconSettings X="40" Y="310" Width="68" Height="68" InsetX="6" InsetY="6" InsetWidth="56" InsetHeight="56"/>
+	<ProgramListSettings X="149" Y="106" Width="226" Height="401"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>
+	<Image Name="Search" Image="distributor-logo.png" ImageX="6" ImageY="6"/>
+	<Label Name="Menu"	Markup="&lt;span foreground='#000000' font_desc='Sans 9' stretch='semicondensed' weight='bold'&gt;Menu&lt;/span&gt;" LabelX="2" LabelY="88" Command=""/>
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Favorites&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png" TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="106" SubMenu="1" Command="7" CloseMenu="0" Icon="emblem-favorite.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+
+	<Tab Name="Applications"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Applications&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png" TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="134"   SubMenu="1" Command="1" CloseMenu="0" Icon="applications-accessories.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+
+	<Tab Name="Computer"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png" TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="162" SubMenu="1" Command="8" CloseMenu="0" Icon="computer.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+
+    <Tab Name="Web Bookmarks"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Web Bookmarks&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png"  TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="190" SubMenu="1" Command="10" CloseMenu="0" Icon="applications-internet.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+
+	<Tab Name="Recent Items"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Recent Items&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png" TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="218" SubMenu="1" Command="4" CloseMenu="0" Icon="document-open-recent.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+
+    <Tab Name="Recent Applications"	Markup="&lt;span foreground='#cdcdcd' font_desc='Sans 9' stretch='normal' weight='normal'&gt;Recent Applications&lt;/span&gt;"		TextX="10" TextY="6" TextAlignment="0" Image="" ImageSel="m_tab.png"  TabIconX="2" TabIconY="2" TabIcon="" TabX="0" TabY="246" SubMenu="1" Command="2" CloseMenu="0" Icon="applications-other.png" AddBackButton='0' InvertTextColorOnSel='1'/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='Sans 9' stretch='semicondensed' weight='bold'&gt;System&lt;/span&gt;" LabelX="2" LabelY="390" Command=""/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;User : [TEXT]&lt;/span&gt;" LabelX="20" LabelY="420" Command="whoami"/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;Distro : [TEXT]&lt;/span&gt;" LabelX="20" LabelY="450" Command="lsb_release -d | sed -e 's/.*: //' | awk '{print $2,$3}'"/>
+	<Label Name="System"	Markup="&lt;span foreground='#000000' font_desc='sans 8' stretch='semicondensed'&gt;Hdd : [TEXT] Used&lt;/span&gt;" LabelX="20" LabelY="480" Command="df / -h -P | grep '% /' |  awk '{print $5}'"/>
+
+	<Button Name="Power"		Markup="" TextX="0" TextY="0" Image="button3.png" ImageBack="button3.png" ButtonIcon="m_power.png" ButtonIconSel="m_power_sel.png" ButtonIconSize="18" ButtonIconX="10" ButtonIconY="0" ButtonX="284" ButtonY="514" SubMenu="0" Command="Power" CloseMenu="1" Icon=""/>
+
+	<Button Name="Logout"		Markup="" TextX="0" TextY="0" Image="button2.png" ImageBack="button2.png" ButtonIcon="m_logout.png" ButtonIconSel="m_logout_sel.png" ButtonIconSize="18" ButtonIconX="10" ButtonIconY="0" ButtonX="323" ButtonY="514" SubMenu="0" Command="Logout" CloseMenu="1" Icon=""/>
+
+
+</theme>
+</content>

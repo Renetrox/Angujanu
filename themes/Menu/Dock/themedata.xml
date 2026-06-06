@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Dock" Author="Whise" Version="1.0" Copyright="Artwork by Whise"/>
+# If only one theme type available then specify color='All'
+<theme color="white" color_lang="White" colorvalue="#000000">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="271" Height="430"/>
+	<IconSettings X="300" Y="6" Width="65" Height="66" InsetX="6" InsetY="6" InsetWidth="46" InsetHeight="46"/>
+	#SearchBar: Widget can either be 'Custom', 'GTK' or 'None'. This tag has to be present, everything after Widget needs to be there only if it's 'Custom'
+	#InsetX, Y = topleft location to start displaying text
+	#Widgetname = the file name of the python searchbar module without '.py' on the end.
+	<SearchBarSettings  X="33" Y="445" Width="254" Height="24" Widget="Custom" WidgetName="SearchBar" InitialText="Start Search" TextColor="#FFFFFF" InsetX="6" InsetY="16" Background="m_searchbar.png"/>
+	<ProgramListSettings X="35" Y="36" Width="250" Height="380"/>
+	<Capabilities HasSearch="1" HasIcon="0" HasFadeTransition="0"/>
+
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Favorites&lt;/span&gt;"		TextX="0" TextY="8" TextAlignment="1" InvertTextColorOnSel='0' Image="" ImageSel="tab.png" TabIconX="0" TabIconY="0" TabIcon="" TabX="33" TabY="420" SubMenu="1" Command="7" CloseMenu="0" Icon="" AddBackButton='0'/>
+
+	<Tab Name="Applications"	Markup="&lt;span foreground='#FFFFFF' font_desc='Sans 8' stretch='semicondensed'&gt;Applications&lt;/span&gt;"		TextX="0" TextY="8" TextAlignment="1" InvertTextColorOnSel='0' Image="" ImageSel="tab.png" TabIconX="0" TabIconY="0" TabIcon="" TabX="160" TabY="420"   SubMenu="1" Command="1" CloseMenu="0" Icon="" AddBackButton='0'/>
+	#Submenu="1" Commands can be: 0=Program list back button  1=Program list show base menu  2=Unmount drives list  3=Auxiliary functions  4=Recent items  5=Search(cannot be used in button context)  6=Launch top item in a search results window
+</theme>
+</content>

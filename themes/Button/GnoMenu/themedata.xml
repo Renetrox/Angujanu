@@ -1,0 +1,7 @@
+<?xml version="1.0" ?>
+<content type="Button">
+<ContentData Name="GnoMenu" Author="Whise" Copyright="GPL"/>
+<theme Top="0" id="HasTop">
+	<Background Image="logo.svg" ImagePressed="pressed.svg" ImageHover="glow.svg"/>
+</theme>
+</content>

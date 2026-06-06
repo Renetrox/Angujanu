@@ -1,0 +1,20 @@
+<?xml version="1.0" ?>
+<content type="Menu">
+<ContentData Name="Kde" Author="Whise" Version="1.0" Copyright="Artwork by Whise, Oxigen icons"/>
+# If only one theme type available then specify color='All'
+<theme color="All" color_lang="All" colorvalue="#FFFFFF">
+	<Background Image="start-menu.png"/>
+	<WindowDimensions Width="380" Height="500"/>
+	<IconSettings X="10" Y="6" Width="58" Height="58" InsetX="6" InsetY="6" InsetWidth="46" InsetHeight="46"/>
+	<SearchBarSettings  X="100" Y="32" Width="254" Height="24" Widget="gtk"/>
+	<ProgramListSettings X="10" Y="69" Width="360" Height="349"/>
+	<Capabilities HasSearch="1" HasIcon="1" HasFadeTransition="1"/>
+	<Tab Name="Favorites"	Markup="&lt;span foreground='#000000' font_desc='sans 6' stretch='normal' weight='normal'&gt;Favorites&lt;/span&gt;"		TextX="4" TextY="56"  TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="emblem-favorite.png" TabX="10" TabY="420" SubMenu="1" Command="7" CloseMenu="0" Icon="" AddBackButton='0'/>
+	<Tab Name="Applications"	Markup="&lt;span foreground='#000000' font_desc='sans 6' stretch='normal' weight='normal'&gt;Applications&lt;/span&gt;"		TextX="4" TextY="56" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="applications-accessories.png" TabX="91" TabY="420" SubMenu="1" Command="1" CloseMenu="0" Icon="" AddBackButton='0'/>
+	<Tab Name="Computer"	Markup="&lt;span foreground='#000000' font_desc='sans 6' stretch='normal' weight='normal'&gt;Computer&lt;/span&gt;"		TextX="4" TextY="56" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="computer.png" TabX="158" TabY="420" SubMenu="1" Command="8" CloseMenu="0" Icon="" AddBackButton='0'/>
+	<Tab Name="Recently Used"	Markup="&lt;span foreground='#000000' font_desc='sans 6' stretch='normal' weight='normal'&gt;Recently Used&lt;/span&gt;"		TextX="4" TextY="56" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="document-open-recent.png" TabX="225" TabY="420" SubMenu="1" Command="4" CloseMenu="0" Icon="" AddBackButton='0'/>
+	<Tab Name="Leave"	Markup="&lt;span foreground='#000000' font_desc='sans 6' stretch='normal' weight='normal'&gt;Leave&lt;/span&gt;"		TextX="4" TextY="56" TextAlignment="1" InvertTextColorOnSel='1' Image="" ImageSel="m_tab.png" TabIconX="10" TabIconY="10" TabIcon="system-shutdown.png" TabX="302" TabY="420" SubMenu="1" Command="9" CloseMenu="0" Icon="" AddBackButton='0'/>
+	<Label Name="Username"	Markup="&lt;span foreground='#FFFFFF' font_desc='sans 12' stretch='semicondensed'&gt;[TEXT]&lt;/span&gt;" LabelX="350" LabelY="10" TextAlignment="2" Command="whoami"/>
+
+</theme>
+</content>
