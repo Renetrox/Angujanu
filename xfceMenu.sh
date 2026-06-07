@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 BASE_DIR="/home/Reneto/Público/XFCEMenu/XFCEMenu"
-THEME="Win2-7Standard-Es"
 PIDFILE="/tmp/xfcemenu-${USER}.pid"
+PYTHON_BIN="python3"
 
 # Si ya hay una instancia registrada, la cerramos.
 if [ -f "$PIDFILE" ]; then
@@ -19,7 +19,9 @@ fi
 
 cd "$BASE_DIR" || exit 1
 
-python3 "$BASE_DIR/xfcemenu.py" --theme "$THEME" &
+# Arranca usando ~/.config/xfcemenu/config.ini.
+# Si el config.ini no existe, xfcemenu.py debe crearlo con valores por defecto.
+"$PYTHON_BIN" "$BASE_DIR/xfcemenu.py" &
 NEW_PID=$!
 
 echo "$NEW_PID" > "$PIDFILE"

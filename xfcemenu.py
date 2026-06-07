@@ -22,6 +22,260 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THEMES_DIR = os.path.join(BASE_DIR, "themes")
 
 
+CONFIG_DIR = os.path.expanduser("~/.config/xfcemenu")
+CONFIG_FILE = os.path.join(CONFIG_DIR, "config.ini")
+
+THEME_KINDS = {
+    "menu": "Menu",
+    "icon": "Icon",
+    "button": "Button",
+    "sound": "Sound",
+}
+
+DEFAULT_CONFIG = {
+    "theme": {
+        "menu_theme": "Win2-7Standard-Es",
+        "icon_theme": "Vista",
+        "button_theme": "Win2-7",
+        "sound_theme": "Win2-7",
+    },
+    "behavior": {
+        "close_on_focus_out": "true",
+        "play_sounds": "true",
+        "show_avatar": "true",
+        "panel_mode": "true",
+    },
+    "interface": {
+        "language": "auto",
+        "icon_size": "24",
+        "program_text_auto_color": "true",
+    },
+}
+
+
+def ensure_config_file():
+    """
+    Crea ~/.config/xfcemenu/config.ini si todavía no existe.
+    El archivo guarda solo nombres de carpetas; los temas se detectan en themes/*.
+    """
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+
+    if os.path.isfile(CONFIG_FILE):
+        return
+
+    config = configparser.ConfigParser()
+    for section, values in DEFAULT_CONFIG.items():
+        config[section] = values
+
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            config.write(f)
+
+        print(f"XFCEMenu: config creado en {CONFIG_FILE}")
+    except Exception as e:
+        print(f"XFCEMenu: no se pudo crear config.ini: {e}")
+
+
+def load_xfcemenu_config():
+    ensure_config_file()
+
+    config = configparser.ConfigParser()
+    config.read(CONFIG_FILE, encoding="utf-8")
+
+    changed = False
+
+    # Completar claves faltantes sin borrar preferencias existentes.
+    for section, values in DEFAULT_CONFIG.items():
+        if section not in config:
+            config[section] = {}
+            changed = True
+
+        for key, value in values.items():
+            if key not in config[section]:
+                config[section][key] = value
+                changed = True
+
+    if changed:
+        try:
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                config.write(f)
+        except Exception as e:
+            print(f"XFCEMenu: no se pudo actualizar config.ini: {e}")
+
+    return config
+
+
+def config_bool(config, section, key, fallback=True):
+    try:
+        return config.getboolean(section, key, fallback=fallback)
+    except Exception:
+        return fallback
+
+
+def config_int(config, section, key, fallback=24):
+    try:
+        return config.getint(section, key, fallback=fallback)
+    except Exception:
+        return fallback
+
+
+def theme_root(kind):
+    return os.path.join(THEMES_DIR, THEME_KINDS.get(kind, kind))
+
+
+def read_theme_metadata(path):
+    """
+    Lee datos básicos de themedata.xml si existe.
+    Si el XML no existe o falla, se usa el nombre de carpeta.
+    """
+    info = {
+        "folder": os.path.basename(path),
+        "name": os.path.basename(path),
+        "author": "",
+        "type": "",
+        "path": path,
+    }
+
+    themedata = os.path.join(path, "themedata.xml")
+
+    if not os.path.isfile(themedata):
+        return info
+
+    try:
+        import xml.etree.ElementTree as ET
+
+        root = ET.parse(themedata).getroot()
+        info["type"] = root.attrib.get("type", "")
+
+        content_data = root.find(".//ContentData")
+        if content_data is not None:
+            info["name"] = content_data.attrib.get("Name", info["name"])
+            info["author"] = content_data.attrib.get("Author", "")
+
+    except Exception as e:
+        print(f"XFCEMenu: no se pudo leer metadata de tema {themedata}: {e}")
+
+    return info
+
+
+def list_theme_packages(kind):
+    root = theme_root(kind)
+
+    if not os.path.isdir(root):
+        return []
+
+    packages = []
+
+    try:
+        folders = sorted(os.listdir(root), key=lambda item: item.lower())
+    except Exception:
+        return []
+
+    for folder in folders:
+        path = os.path.join(root, folder)
+
+        if not os.path.isdir(path):
+            continue
+
+        info = read_theme_metadata(path)
+
+        # Si themedata declara tipo, validamos sin ser demasiado estrictos.
+        declared = (info.get("type") or "").strip().lower()
+        expected = THEME_KINDS.get(kind, kind).strip().lower()
+
+        if declared and declared != expected:
+            continue
+
+        packages.append(info)
+
+    return packages
+
+
+def package_exists(kind, name):
+    if not name:
+        return False
+
+    return os.path.isdir(os.path.join(theme_root(kind), name))
+
+
+def first_theme_package(kind):
+    packages = list_theme_packages(kind)
+    if packages:
+        return packages[0]["folder"]
+    return ""
+
+
+def guess_related_package(kind, menu_theme_name):
+    """
+    Intenta deducir paquetes relacionados.
+    Ejemplo:
+        Win2-7Standard-Es -> Win2-7
+    """
+    if not menu_theme_name:
+        return ""
+
+    root = theme_root(kind)
+    if not os.path.isdir(root):
+        return ""
+
+    candidates = []
+    candidates.append(menu_theme_name)
+
+    if menu_theme_name.lower().startswith("win2-7"):
+        candidates.append("Win2-7")
+
+    simplified = re.sub(
+        r"(standard|basic|classic|black|blue|green|red|purple|pink|turquoise|human|murrine|crystal).*",
+        "",
+        menu_theme_name,
+        flags=re.IGNORECASE
+    ).strip("-_ ")
+
+    if simplified:
+        candidates.append(simplified)
+
+    for candidate in candidates:
+        if os.path.isdir(os.path.join(root, candidate)):
+            return candidate
+
+    return ""
+
+
+def resolve_theme_choice(kind, requested, fallback="", menu_theme_name=""):
+    """
+    Resuelve un paquete existente:
+    1. valor pedido por argumento/config
+    2. fallback explícito
+    3. deducción desde el menú
+    4. primer paquete detectado
+    """
+    for value in (requested, fallback):
+        value = (value or "").strip()
+        if value and package_exists(kind, value):
+            return value
+
+    guessed = guess_related_package(kind, menu_theme_name)
+    if guessed:
+        return guessed
+
+    return first_theme_package(kind)
+
+
+def print_available_themes():
+    for kind in ("menu", "icon", "button", "sound"):
+        print(f"\n[{THEME_KINDS[kind]}]")
+        packages = list_theme_packages(kind)
+
+        if not packages:
+            print("  (sin paquetes detectados)")
+            continue
+
+        for info in packages:
+            author = f" — {info['author']}" if info.get("author") else ""
+            print(f"  {info['folder']}  ({info['name']}{author})")
+
+
+
 class DesktopApp:
     def __init__(self, name, exec_cmd, icon="", comment="", desktop_file="", categories=""):
         self.name = name
@@ -62,6 +316,81 @@ class ActionItem:
         self.name = name
         self.icon = icon
         self.command = command
+
+
+class SoundManager:
+    """
+    Reproductor simple para temas Sound legacy de GnoMenu/XFCEMenu.
+    Busca nombres fijos:
+        show-menu.ogg
+        hide-menu.ogg
+        button-pressed.ogg
+        tab-pressed.ogg
+    """
+    EVENT_FILES = {
+        "show": ("show-menu.ogg", "show-menu.wav"),
+        "hide": ("hide-menu.ogg", "hide-menu.wav"),
+        "button": ("button-pressed.ogg", "button-pressed.wav", "button.wav", "click.wav"),
+        "tab": ("tab-pressed.ogg", "tab-pressed.wav"),
+    }
+
+    def __init__(self, sound_theme="", enabled=True):
+        self.sound_theme = sound_theme or ""
+        self.enabled = bool(enabled)
+        self.sound_dir = os.path.join(theme_root("sound"), self.sound_theme) if self.sound_theme else ""
+        self._last_play_us = {}
+        self.cooldown_us = 120000
+
+    def get_sound_path(self, event_name):
+        if not self.enabled or not self.sound_dir or not os.path.isdir(self.sound_dir):
+            return None
+
+        for filename in self.EVENT_FILES.get(event_name, ()):
+            path = os.path.join(self.sound_dir, filename)
+            if os.path.isfile(path):
+                return path
+
+        return None
+
+    def play(self, event_name):
+        path = self.get_sound_path(event_name)
+
+        if not path:
+            return False
+
+        # Evita ráfagas si GTK dispara el mismo evento varias veces seguidas.
+        try:
+            now = GLib.get_monotonic_time()
+            last = self._last_play_us.get(event_name, 0)
+            if now - last < self.cooldown_us:
+                return False
+            self._last_play_us[event_name] = now
+        except Exception:
+            pass
+
+        players = [
+            ["paplay", path],
+            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "quiet", path],
+            ["mpv", "--no-video", "--really-quiet", path],
+            ["cvlc", "--play-and-exit", "--quiet", path],
+        ]
+
+        for cmd in players:
+            if not shutil.which(cmd[0]):
+                continue
+
+            try:
+                subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                return True
+            except Exception:
+                pass
+
+        print(f"XFCEMenu: no hay reproductor disponible para sonido: {path}")
+        return False
 
 
 def detect_language():
@@ -650,10 +979,20 @@ def load_desktop_apps():
 
 
 class XFCEMenuWindow(Gtk.Window):
-    def __init__(self, theme):
+    def __init__(self, theme, icon_theme="", button_theme="", sound_theme="", play_sounds=True, close_on_focus_out=True, show_avatar=True, icon_size=24):
         super().__init__(title="XFCEMenu")
 
         self.theme = theme
+        self.icon_theme = icon_theme or ""
+        self.button_theme = button_theme or ""
+        self.sound_theme = sound_theme or ""
+        self.play_sounds = bool(play_sounds)
+        self.close_on_focus_out = bool(close_on_focus_out)
+        self.show_avatar = bool(show_avatar)
+        self.icon_size = max(12, int(icon_size or 24))
+        self.sound = SoundManager(self.sound_theme, enabled=self.play_sounds)
+        self.close_requested = False
+        self.hide_sound_started = False
         self.background_pixbuf = None
         self.shape_applied = False
 
@@ -714,7 +1053,8 @@ class XFCEMenuWindow(Gtk.Window):
         self.draw_program_widgets()
         self.draw_tabs()
 
-        self.draw_user_icon()
+        if self.show_avatar:
+            self.draw_user_icon()
         self.draw_buttons()
         self.draw_labels()
 
@@ -725,6 +1065,14 @@ class XFCEMenuWindow(Gtk.Window):
         self.position_near_bottom_left()
 
         GLib.idle_add(self.present)
+        GLib.idle_add(self.play_show_sound_once)
+
+    def play_show_sound_once(self):
+        # GLib.idle_add repite el callback si devuelve True.
+        # El reproductor devuelve True cuando pudo lanzar el sonido, así que
+        # esta función siempre debe devolver False para sonar una sola vez.
+        self.play_event_sound("show")
+        return False
 
     def detect_program_area_is_dark(self):
         """
@@ -915,6 +1263,37 @@ class XFCEMenuWindow(Gtk.Window):
     def on_destroy(self, widget):
         self.cancel_avatar_hover_timer()
 
+        if not self.hide_sound_started:
+            self.play_event_sound("hide")
+
+    def play_event_sound(self, event_name):
+        if getattr(self, "sound", None):
+            return self.sound.play(event_name)
+
+        return False
+
+    def close_menu(self, delay_ms=120):
+        if self.close_requested:
+            return False
+
+        self.close_requested = True
+        self.hide_sound_started = self.play_event_sound("hide")
+
+        if self.hide_sound_started and delay_ms > 0:
+            GLib.timeout_add(delay_ms, self.destroy_now)
+        else:
+            self.destroy_now()
+
+        return False
+
+    def destroy_now(self):
+        try:
+            Gtk.Window.destroy(self)
+        except Exception:
+            pass
+
+        return False
+
     def theme_path(self, filename):
         return os.path.join(self.theme.theme_dir, filename)
 
@@ -928,6 +1307,16 @@ class XFCEMenuWindow(Gtk.Window):
             candidates.append(filename)
 
         candidates.append(self.theme_path(filename))
+
+        # Prioridad configurada: Button/Icon/Menu elegidos por config.ini o argumentos.
+        # Luego se mantienen los fallbacks generales para compatibilidad con temas viejos.
+        for configured_kind, configured_name in (
+            ("Button", getattr(self, "button_theme", "")),
+            ("Icon", getattr(self, "icon_theme", "")),
+            ("Menu", os.path.basename(getattr(self.theme, "theme_dir", "") or "")),
+        ):
+            if configured_name:
+                candidates.append(os.path.join(THEMES_DIR, configured_kind, configured_name, filename))
 
         icon_root = os.path.join(THEMES_DIR, "Icon")
         if os.path.isdir(icon_root):
@@ -1459,17 +1848,17 @@ class XFCEMenuWindow(Gtk.Window):
 
         icon_pixbuf = None
         if icon_name:
-            icon_pixbuf = self.load_icon_pixbuf(icon_name, 24)
+            icon_pixbuf = self.load_icon_pixbuf(icon_name, self.icon_size)
 
         if not icon_pixbuf:
-            icon_pixbuf = self.load_icon_pixbuf("application-x-executable", 24)
+            icon_pixbuf = self.load_icon_pixbuf("application-x-executable", self.icon_size)
 
         if icon_pixbuf:
             icon = Gtk.Image.new_from_pixbuf(icon_pixbuf)
         else:
             icon = Gtk.Image()
 
-        icon.set_size_request(24, 24)
+        icon.set_size_request(self.icon_size, self.icon_size)
 
         label = Gtk.Label(label=label_text)
         label.get_style_context().add_class("xfcemenu-program-label")
@@ -1519,6 +1908,7 @@ class XFCEMenuWindow(Gtk.Window):
         return False
 
     def on_program_row_activated(self, listbox, row):
+        self.play_event_sound("button")
         item_type = getattr(row, "item_type", "")
 
         if item_type == "category":
@@ -1547,7 +1937,7 @@ class XFCEMenuWindow(Gtk.Window):
                     path = get_xdg_user_dir(item.xdg_key, item.path or "~")
 
                 open_path(path)
-                self.destroy()
+                self.close_menu()
 
             return
 
@@ -1555,8 +1945,22 @@ class XFCEMenuWindow(Gtk.Window):
             item = getattr(row, "action_item", None)
 
             if item and item.command:
-                run_command(item.command)
-                self.destroy()
+                # Los ActionItem internos usan nombres legacy como Shutdown, Restart,
+                # LogoutNow, Lock, etc. No deben ejecutarse literalmente como
+                # binarios del sistema; primero pasan por el mismo traductor de
+                # comandos que usan los botones del tema.
+                handled = self.handle_legacy_button_action(item.command)
+
+                if not handled:
+                    handled = self.handle_internal_menu_command(item.command)
+
+                if not handled:
+                    run_command(item.command)
+
+                # Si el comando abrió un submenú interno, dejamos el menú visible.
+                # Para acciones reales de sesión/aplicaciones, cerramos.
+                if (item.command or "").strip().lower() not in ("power", "aux", "3"):
+                    self.close_menu()
 
             return
 
@@ -1574,7 +1978,7 @@ class XFCEMenuWindow(Gtk.Window):
 
     def on_search_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
-            self.destroy()
+            self.close_menu()
             return True
 
         if event.keyval == Gdk.KEY_BackSpace:
@@ -1591,7 +1995,7 @@ class XFCEMenuWindow(Gtk.Window):
 
         try:
             subprocess.Popen(app.exec_cmd, shell=True)
-            self.destroy()
+            self.close_menu()
         except Exception as e:
             print(f"XFCEMenu: no se pudo abrir '{app.name}': {e}")
 
@@ -2070,6 +2474,7 @@ class XFCEMenuWindow(Gtk.Window):
         if event.button != 1:
             return False
 
+        self.play_event_sound("tab")
         self.activate_tab(tab)
         self.select_tab_event(tab_event)
         return True
@@ -2837,6 +3242,9 @@ class XFCEMenuWindow(Gtk.Window):
         return False
 
     def on_button_clicked(self, widget, event, button):
+        if getattr(event, "type", None) == Gdk.EventType.BUTTON_PRESS:
+            self.play_event_sound("button")
+
         command = (getattr(button, "command", "") or "").strip()
         command_lower = command.lower()
 
@@ -2844,7 +3252,7 @@ class XFCEMenuWindow(Gtk.Window):
         if self.handle_legacy_button_action(command):
             # Power/Aux abren un submenú interno, no deben cerrar la ventana.
             if command_lower not in ("power", "aux", "3") and button.close_menu:
-                self.destroy()
+                self.close_menu()
             return
 
         # Botones legacy que no son comandos reales del sistema.
@@ -2864,7 +3272,7 @@ class XFCEMenuWindow(Gtk.Window):
         run_command(command)
 
         if button.close_menu:
-            self.destroy()
+            self.close_menu()
 
     def on_button_hover(self, widget, event, button):
         command = (getattr(button, "command", "") or "").strip()
@@ -2875,11 +3283,12 @@ class XFCEMenuWindow(Gtk.Window):
         self.on_button_clicked(widget, event, button)
 
     def on_focus_out(self, widget, event):
-        self.destroy()
+        if self.close_on_focus_out:
+            self.close_menu()
 
     def on_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
-            self.destroy()
+            self.close_menu()
             return True
 
         # Al escribir estando el foco fuera del buscador, mandamos el texto al Entry.
@@ -2942,24 +3351,105 @@ def find_menu_theme(theme_name):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="XFCEMenu prototype")
+    config = load_xfcemenu_config()
+
+    parser = argparse.ArgumentParser(description="XFCEMenu")
     parser.add_argument(
         "--theme",
-        default="Windows 7 Box",
-        help="Nombre del tema de menú"
+        default=None,
+        help="Nombre de carpeta del tema de menú dentro de themes/Menu"
+    )
+    parser.add_argument(
+        "--icon-theme",
+        default=None,
+        help="Nombre de carpeta del paquete de iconos dentro de themes/Icon"
+    )
+    parser.add_argument(
+        "--button-theme",
+        default=None,
+        help="Nombre de carpeta del paquete de botones dentro de themes/Button"
+    )
+    parser.add_argument(
+        "--sound-theme",
+        default=None,
+        help="Nombre de carpeta del paquete de sonidos dentro de themes/Sound"
+    )
+    parser.add_argument(
+        "--no-sounds",
+        action="store_true",
+        help="Desactiva sonidos para esta ejecución"
+    )
+    parser.add_argument(
+        "--list-themes",
+        action="store_true",
+        help="Lista paquetes detectados en themes/Menu, Icon, Button y Sound"
     )
 
     args = parser.parse_args()
 
-    theme_dir = find_menu_theme(args.theme)
+    if args.list_themes:
+        print_available_themes()
+        return 0
+
+    configured_menu = config.get("theme", "menu_theme", fallback=DEFAULT_CONFIG["theme"]["menu_theme"])
+    configured_icon = config.get("theme", "icon_theme", fallback=DEFAULT_CONFIG["theme"]["icon_theme"])
+    configured_button = config.get("theme", "button_theme", fallback=DEFAULT_CONFIG["theme"]["button_theme"])
+    configured_sound = config.get("theme", "sound_theme", fallback=DEFAULT_CONFIG["theme"]["sound_theme"])
+
+    menu_theme = resolve_theme_choice(
+        "menu",
+        args.theme or configured_menu,
+        DEFAULT_CONFIG["theme"]["menu_theme"]
+    )
+
+    icon_theme = resolve_theme_choice(
+        "icon",
+        args.icon_theme or configured_icon,
+        DEFAULT_CONFIG["theme"]["icon_theme"],
+        menu_theme
+    )
+
+    button_theme = resolve_theme_choice(
+        "button",
+        args.button_theme or configured_button,
+        configured_button,
+        menu_theme
+    )
+
+    sound_theme = resolve_theme_choice(
+        "sound",
+        args.sound_theme or configured_sound,
+        DEFAULT_CONFIG["theme"]["sound_theme"],
+        menu_theme
+    )
+
+    if not menu_theme:
+        print("XFCEMenu: no se encontró ningún tema de menú en:")
+        print(f"  {os.path.join(THEMES_DIR, 'Menu')}")
+        return 1
+
+    theme_dir = find_menu_theme(menu_theme)
 
     if not theme_dir:
-        print(f"No se encontró el tema: {args.theme}")
+        print(f"No se encontró el tema: {menu_theme}")
         print("Rutas buscadas:")
-        print(f"  {os.path.join(THEMES_DIR, 'Menu', args.theme)}")
-        print(f"  {os.path.join(THEMES_DIR, 'menus', args.theme)}")
-        print(f"  {os.path.join(THEMES_DIR, args.theme)}")
+        print(f"  {os.path.join(THEMES_DIR, 'Menu', menu_theme)}")
+        print(f"  {os.path.join(THEMES_DIR, 'menus', menu_theme)}")
+        print(f"  {os.path.join(THEMES_DIR, menu_theme)}")
         return 1
+
+    play_sounds = config_bool(config, "behavior", "play_sounds", True) and not args.no_sounds
+    close_on_focus_out = config_bool(config, "behavior", "close_on_focus_out", True)
+    show_avatar = config_bool(config, "behavior", "show_avatar", True)
+    icon_size = config_int(config, "interface", "icon_size", 24)
+
+    print("XFCEMenu: configuración activa")
+    print(f"  Config: {CONFIG_FILE}")
+    print(f"  Menu:   {menu_theme}")
+    print(f"  Icon:   {icon_theme or '(fallback GTK)'}")
+    print(f"  Button: {button_theme or '(auto)'}")
+    print(f"  Sound:  {sound_theme or '(sin sonidos)'}")
+    print(f"  Temas:  {THEMES_DIR}")
 
     try:
         theme = load_menu_theme(theme_dir)
@@ -2970,7 +3460,16 @@ def main():
     app = Gtk.Application(application_id="org.renetrox.xfcemenu")
 
     def on_activate(application):
-        window = XFCEMenuWindow(theme)
+        window = XFCEMenuWindow(
+            theme,
+            icon_theme=icon_theme,
+            button_theme=button_theme,
+            sound_theme=sound_theme,
+            play_sounds=play_sounds,
+            close_on_focus_out=close_on_focus_out,
+            show_avatar=show_avatar,
+            icon_size=icon_size
+        )
         window.set_application(application)
         window.show_all()
 
