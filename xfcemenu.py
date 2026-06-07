@@ -5,10 +5,13 @@ import argparse
 import subprocess
 import re
 import html
+import configparser
+import shlex
+import shutil
 
 import gi
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, Gdk, GdkPixbuf, GLib
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 import cairo
 
 from legacy_loader import load_menu_theme
@@ -19,6 +22,250 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 THEMES_DIR = os.path.join(BASE_DIR, "themes")
 
 
+class DesktopApp:
+    def __init__(self, name, exec_cmd, icon="", comment="", desktop_file="", categories=""):
+        self.name = name
+        self.exec_cmd = exec_cmd
+        self.icon = icon
+        self.comment = comment
+        self.desktop_file = desktop_file
+        self.categories = categories
+
+
+class MenuCategory:
+    def __init__(self, key, name, icon, matcher):
+        self.key = key
+        self.name = name
+        self.icon = icon
+        self.matcher = matcher
+        self.apps = []
+
+
+class BackItem:
+    def __init__(self, label="Volver"):
+        self.name = label
+        # Usamos el icono GTK/tema, no un símbolo en el texto.
+        # Si el tema tiene su propio icono de volver, load_icon_pixbuf() lo prioriza.
+        self.icon = "go-previous"
+
+
+CATEGORY_DEFINITIONS = [
+    # key, label, icon, matcher
+    ("browse", "Browse Internet", "internet-web-browser", "browser"),
+    ("email", "E-mail", "internet-mail", "email"),
+    ("all", "Applications", "applications-other", "all"),
+    ("development", "Development", "applications-development", "Development"),
+    ("games", "Games", "applications-games", "Game"),
+    ("graphics", "Graphics", "applications-graphics", "Graphics"),
+    ("internet", "Internet", "applications-internet", "Network"),
+    ("multimedia", "Multimedia", "applications-multimedia", "AudioVideo;Audio;Video;Player;Recorder"),
+    ("office", "Office", "applications-office", "Office"),
+    ("system", "System", "applications-system", "System;Settings;PackageManager"),
+    ("utilities", "Utilities", "applications-utilities", "Utility;Accessories;FileManager;Archiving;Compression;TextEditor;TerminalEmulator"),
+    ("wine", "Wine", "applications-wine", "Wine;X-Wine"),
+]
+
+
+def split_categories(categories):
+    return {item.strip() for item in (categories or "").split(";") if item.strip()}
+
+
+def app_matches_category(app, matcher):
+    cats = split_categories(getattr(app, "categories", ""))
+    name = (getattr(app, "name", "") or "").lower()
+    cmd = (getattr(app, "exec_cmd", "") or "").lower()
+    desktop_file = (getattr(app, "desktop_file", "") or "").lower()
+
+    if matcher == "all":
+        return True
+
+    if matcher == "browser":
+        return (
+            "WebBrowser" in cats
+            or "Browser" in cats
+            or "webbrowser" in desktop_file
+            or "firefox" in cmd
+            or "chromium" in cmd
+            or "google-chrome" in cmd
+        )
+
+    if matcher == "email":
+        return (
+            "Email" in cats
+            or "Mail" in cats
+            or "thunderbird" in cmd
+            or "mail" in name
+        )
+
+    wanted = {item.strip() for item in matcher.split(";") if item.strip()}
+
+    if cats & wanted:
+        return True
+
+    if "Wine" in wanted or "X-Wine" in wanted:
+        return "wine" in cmd or "wine" in desktop_file
+
+    return False
+
+
+def clean_desktop_exec(exec_cmd):
+    """
+    Limpia los códigos de campo de archivos .desktop.
+    Ejemplos:
+        firefox %u -> firefox
+        thunar %F -> thunar
+        libreoffice --writer %U -> libreoffice --writer
+    """
+    if not exec_cmd:
+        return ""
+
+    # %i, %c y %k pueden expandirse con icono/nombre/ruta, pero para este menú
+    # es más seguro quitarlos y ejecutar el comando base.
+    exec_cmd = re.sub(r"\s+%[fFuUdDnNickvm]", "", exec_cmd)
+    exec_cmd = exec_cmd.replace("%%", "%")
+
+    return exec_cmd.strip()
+
+
+def desktop_bool(value):
+    return str(value).strip().lower() in ("1", "true", "yes")
+
+
+def desktop_environment_allows(entry):
+    """
+    Respeta un poco las claves estándar de .desktop sin ponerse demasiado estricto.
+    En XFCE conviene ocultar lo marcado NotShowIn=XFCE, pero no bloquear todo
+    lo que no tenga OnlyShowIn.
+    """
+    current = {"XFCE", "X-Cinnamon", "GNOME", "GTK"}
+
+    not_show = entry.get("NotShowIn", "")
+    if not_show:
+        blocked = {item.strip() for item in not_show.split(";") if item.strip()}
+        if "XFCE" in blocked:
+            return False
+
+    only_show = entry.get("OnlyShowIn", "")
+    if only_show:
+        allowed = {item.strip() for item in only_show.split(";") if item.strip()}
+        if allowed and not (allowed & current):
+            return False
+
+    return True
+
+
+def tryexec_available(try_exec):
+    if not try_exec:
+        return True
+
+    try:
+        parts = shlex.split(try_exec)
+    except Exception:
+        parts = try_exec.split()
+
+    if not parts:
+        return True
+
+    command = parts[0]
+
+    if os.path.isabs(command):
+        return os.path.exists(command) and os.access(command, os.X_OK)
+
+    return shutil.which(command) is not None
+
+
+def load_desktop_apps():
+    """
+    Carga programas reales desde .desktop.
+    Busca en sistema + usuario, filtra ocultos y evita duplicados.
+    """
+    apps = []
+    seen = set()
+
+    app_dirs = [
+        "/usr/share/applications",
+        "/usr/local/share/applications",
+        os.path.expanduser("~/.local/share/applications"),
+    ]
+
+    for app_dir in app_dirs:
+        if not os.path.isdir(app_dir):
+            continue
+
+        try:
+            filenames = sorted(os.listdir(app_dir))
+        except Exception:
+            continue
+
+        for filename in filenames:
+            if not filename.endswith(".desktop"):
+                continue
+
+            desktop_path = os.path.join(app_dir, filename)
+
+            parser = configparser.ConfigParser(
+                interpolation=None,
+                strict=False
+            )
+
+            # Mantener mayúsculas/minúsculas en claves por si algún .desktop raro depende de eso.
+            parser.optionxform = str
+
+            try:
+                parser.read(desktop_path, encoding="utf-8")
+            except Exception:
+                continue
+
+            if "Desktop Entry" not in parser:
+                continue
+
+            entry = parser["Desktop Entry"]
+
+            if entry.get("Type", "Application") != "Application":
+                continue
+
+            if desktop_bool(entry.get("NoDisplay", "false")):
+                continue
+
+            if desktop_bool(entry.get("Hidden", "false")):
+                continue
+
+            if not desktop_environment_allows(entry):
+                continue
+
+            if not tryexec_available(entry.get("TryExec", "")):
+                continue
+
+            name = entry.get("Name", "").strip()
+            exec_cmd = clean_desktop_exec(entry.get("Exec", "").strip())
+
+            if not name or not exec_cmd:
+                continue
+
+            # Evita duplicados por archivo desktop y por nombre+comando.
+            key = (filename.lower(), name.lower(), exec_cmd.lower())
+            name_key = (name.lower(), exec_cmd.lower())
+
+            if key in seen or name_key in seen:
+                continue
+
+            seen.add(key)
+            seen.add(name_key)
+
+            apps.append(DesktopApp(
+                name=name,
+                exec_cmd=exec_cmd,
+                icon=entry.get("Icon", "").strip(),
+                comment=entry.get("Comment", "").strip(),
+                desktop_file=desktop_path,
+                categories=entry.get("Categories", "").strip()
+            ))
+
+    apps.sort(key=lambda app: app.name.lower())
+    return apps
+
+
+
 class XFCEMenuWindow(Gtk.Window):
     def __init__(self, theme):
         super().__init__(title="XFCEMenu")
@@ -26,6 +273,16 @@ class XFCEMenuWindow(Gtk.Window):
         self.theme = theme
         self.background_pixbuf = None
         self.shape_applied = False
+
+        # Program list / search widgets.
+        self.apps = load_desktop_apps()
+        self.categories = self.build_categories()
+        self.filtered_apps = list(self.apps)
+        self.current_view = "categories"
+        self.current_category = None
+        self.program_scrolled = None
+        self.program_listbox = None
+        self.search_entry = None
 
         # Avatar / user icon.
         self.avatar_image_widget = None
@@ -44,12 +301,19 @@ class XFCEMenuWindow(Gtk.Window):
         self.set_size_request(theme.width, theme.height)
         self.set_default_size(theme.width, theme.height)
 
-        self.setup_transparency()
-
+        # Cargamos primero el fondo para poder detectar si el área de programas
+        # es clara u oscura. En temas negros, el texto GTK normal puede quedar
+        # negro sobre negro; por eso ajustamos solo el color del texto, sin tocar
+        # la selección ni la scrollbar del tema GTK.
         self.background_pixbuf = self.load_pixbuf(self.theme.background)
+        self.program_area_is_dark = self.detect_program_area_is_dark()
+
+        self.setup_transparency()
 
         self.connect("draw", self.on_draw)
         self.connect("realize", self.on_realize)
+
+        self.add_events(Gdk.EventMask.KEY_PRESS_MASK)
 
         self.fixed = Gtk.Fixed()
         self.fixed.set_name("xfcemenu-root")
@@ -62,8 +326,7 @@ class XFCEMenuWindow(Gtk.Window):
         self.fixed.set_size_request(theme.width, theme.height)
         self.add(self.fixed)
 
-        # Temporalmente desactivado hasta crear lista real transparente.
-        # self.draw_program_list_placeholder()
+        self.draw_program_widgets()
 
         self.draw_user_icon()
         self.draw_buttons()
@@ -76,6 +339,87 @@ class XFCEMenuWindow(Gtk.Window):
         self.position_near_bottom_left()
 
         GLib.idle_add(self.present)
+
+    def detect_program_area_is_dark(self):
+        """
+        Detecta si el área ProgramListSettings del PNG es oscura.
+
+        GnoMenu usaba widgets GTK reales encima del skin. En temas claros, el
+        color de texto GTK normal funciona bien; en temas negros puede quedar
+        ilegible. Esta detección solo decide el color del texto de las filas.
+        La selección, el hover y la scrollbar siguen siendo del tema GTK.
+        """
+        if not self.background_pixbuf:
+            return False
+
+        area = self.get_program_area()
+        if not area:
+            return False
+
+        x, y, w, h = area
+
+        bg_w = self.background_pixbuf.get_width()
+        bg_h = self.background_pixbuf.get_height()
+
+        x0 = max(0, min(bg_w, int(x)))
+        y0 = max(0, min(bg_h, int(y)))
+        x1 = max(0, min(bg_w, int(x + w)))
+        y1 = max(0, min(bg_h, int(y + h)))
+
+        if x1 <= x0 or y1 <= y0:
+            return False
+
+        rowstride = self.background_pixbuf.get_rowstride()
+        n_channels = self.background_pixbuf.get_n_channels()
+        has_alpha = self.background_pixbuf.get_has_alpha()
+        pixels = self.background_pixbuf.get_pixels()
+
+        # Muestreo ligero para no recorrer cada píxel en temas grandes.
+        step_x = max(1, int((x1 - x0) / 32))
+        step_y = max(1, int((y1 - y0) / 32))
+
+        total = 0.0
+        count = 0
+
+        for py in range(y0, y1, step_y):
+            for px in range(x0, x1, step_x):
+                offset = py * rowstride + px * n_channels
+
+                try:
+                    r = pixels[offset]
+                    g = pixels[offset + 1]
+                    b = pixels[offset + 2]
+                    a = pixels[offset + 3] if has_alpha and n_channels >= 4 else 255
+                except Exception:
+                    continue
+
+                # Saltamos píxeles casi transparentes porque ahí manda el fondo
+                # del escritorio, no el skin del menú.
+                if a < 40:
+                    continue
+
+                luminance = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+                total += luminance
+                count += 1
+
+        if count == 0:
+            return False
+
+        average = total / float(count)
+        is_dark = average < 100.0
+
+        print(
+            "XFCEMenu: ProgramListSettings luminosidad promedio "
+            f"{average:.1f} -> {'tema oscuro' if is_dark else 'tema claro'}"
+        )
+
+        return is_dark
+
+    def get_program_text_colors(self):
+        if getattr(self, "program_area_is_dark", False):
+            return "#f2f2f2", "#cfcfcf", "#ffffff"
+
+        return "#202020", "#555555", "#000000"
 
     def setup_transparency(self):
         screen = self.get_screen()
@@ -100,27 +444,75 @@ class XFCEMenuWindow(Gtk.Window):
         except Exception:
             pass
 
-        css = b"""
+        program_text_color, program_message_color, search_text_color = self.get_program_text_colors()
+
+        css = f"""
         window,
         GtkWindow,
-        #xfcemenu-root {
+        #xfcemenu-root {{
             background-color: transparent;
             background-image: none;
             border: none;
             box-shadow: none;
-        }
+        }}
 
         fixed,
         frame,
         label,
         eventbox,
-        box {
+        box {{
             background-color: transparent;
             background-image: none;
             border: none;
             box-shadow: none;
-        }
-        """
+        }}
+
+        /*
+         * La lista de programas usa widgets GTK reales, como GnoMenu.
+         * Solo hacemos transparente el contenedor para que se vea el PNG del tema.
+         * No anulamos :hover ni :selected; esas barras las dibuja el tema GTK.
+         */
+        #xfcemenu-program-scroll,
+        #xfcemenu-program-scroll viewport,
+        #xfcemenu-program-list {{
+            background-color: transparent;
+            background-image: none;
+            border: none;
+            box-shadow: none;
+        }}
+
+        #xfcemenu-program-scroll {{
+            padding: 0px;
+        }}
+
+        #xfcemenu-program-row {{
+            background-color: transparent;
+            background-image: none;
+        }}
+
+        .xfcemenu-program-label {{
+            color: {program_text_color};
+        }}
+
+        .xfcemenu-program-message {{
+            color: {program_message_color};
+        }}
+
+        #xfcemenu-program-row:selected .xfcemenu-program-label,
+        #xfcemenu-program-row:selected .xfcemenu-program-message {{
+            color: @theme_selected_fg_color;
+        }}
+
+        /* No tocamos el fondo de :hover ni de :selected.
+         * Esas barras las dibuja el tema GTK, igual que GnoMenu.
+         */
+
+        #xfcemenu-search-entry {{
+            min-height: 0px;
+            padding: 1px 4px;
+            color: {search_text_color};
+        }}
+        """.encode("utf-8")
 
         provider = Gtk.CssProvider()
         provider.load_from_data(css)
@@ -219,6 +611,14 @@ class XFCEMenuWindow(Gtk.Window):
         names_to_try = [base_name]
 
         aliases = {
+            "back": "go-previous",
+            "previous": "go-previous",
+            "gtk-go-back": "go-previous",
+            "go-back": "go-previous",
+            "internet-web-browser": "web-browser",
+            "web-browser": "applications-internet",
+            "internet-mail": "mail-message-new",
+            "applications-wine": "wine",
             "gtk-network": "network-workgroup",
             "gnome-network-properties": "preferences-system-network",
             "gnome-control-center": "preferences-system",
@@ -389,6 +789,363 @@ class XFCEMenuWindow(Gtk.Window):
 
         frame.add(box)
         self.fixed.put(frame, area.x, area.y)
+
+    def get_program_area(self):
+        area = getattr(self.theme, "program_list", None)
+
+        if not area:
+            return None
+
+        x = int(getattr(area, "x", 0))
+        y = int(getattr(area, "y", 0))
+        w = int(getattr(area, "width", 0))
+        h = int(getattr(area, "height", 0))
+
+        if w <= 0 or h <= 0:
+            return None
+
+        return x, y, w, h
+
+    def get_search_area(self):
+        area = getattr(self.theme, "search_bar", None)
+
+        if not area:
+            return None
+
+        x = int(getattr(area, "x", 0))
+        y = int(getattr(area, "y", 0))
+        w = int(getattr(area, "width", 0))
+        h = int(getattr(area, "height", 0))
+
+        if w <= 0 or h <= 0:
+            return None
+
+        return x, y, w, h
+
+    def build_categories(self):
+        categories = []
+
+        for key, name, icon, matcher in CATEGORY_DEFINITIONS:
+            category = MenuCategory(key, name, icon, matcher)
+            category.apps = [app for app in self.apps if app_matches_category(app, matcher)]
+
+            # En la vista inicial no mostramos categorías vacías, salvo Applications.
+            if category.apps or key == "all":
+                category.apps.sort(key=lambda app: app.name.lower())
+                categories.append(category)
+
+        return categories
+
+    def filter_apps(self, query):
+        query = (query or "").strip().lower()
+
+        if not query:
+            return list(self.apps)
+
+        result = []
+
+        for app in self.apps:
+            haystack = " ".join([
+                app.name or "",
+                app.comment or "",
+                app.categories or "",
+                app.exec_cmd or "",
+            ]).lower()
+
+            if query in haystack:
+                result.append(app)
+
+        result.sort(key=lambda app: app.name.lower())
+        return result
+
+    def draw_program_widgets(self):
+        """
+        Crea la lista real usando GTK.
+
+        Modo GnoMenu:
+        - Vista inicial: categorías.
+        - Clic en categoría: programas de esa categoría.
+        - Buscar: filtra todas las apps.
+        - La scrollbar y la selección/hover las dibuja el tema GTK.
+        """
+        self.draw_program_list_widget()
+        self.draw_search_widget()
+
+    def draw_program_list_widget(self):
+        area = self.get_program_area()
+
+        if not area:
+            print("XFCEMenu: el tema no tiene ProgramListSettings.")
+            return
+
+        x, y, w, h = area
+
+        self.program_scrolled = Gtk.ScrolledWindow()
+        self.program_scrolled.set_name("xfcemenu-program-scroll")
+        self.program_scrolled.set_shadow_type(Gtk.ShadowType.NONE)
+        self.program_scrolled.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.program_scrolled.set_overlay_scrolling(False)
+        self.program_scrolled.set_size_request(w, h)
+
+        try:
+            self.program_scrolled.set_has_frame(False)
+        except Exception:
+            pass
+
+        self.program_listbox = Gtk.ListBox()
+        self.program_listbox.set_name("xfcemenu-program-list")
+        self.program_listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.program_listbox.set_activate_on_single_click(True)
+        self.program_listbox.connect("row-activated", self.on_program_row_activated)
+
+        viewport = Gtk.Viewport()
+        viewport.set_shadow_type(Gtk.ShadowType.NONE)
+        viewport.add(self.program_listbox)
+
+        self.program_scrolled.add(viewport)
+        self.fixed.put(self.program_scrolled, x, y)
+
+        self.show_categories()
+
+    def draw_search_widget(self):
+        area = self.get_search_area()
+
+        if not area:
+            return
+
+        x, y, w, h = area
+
+        self.search_entry = Gtk.Entry()
+        self.search_entry.set_name("xfcemenu-search-entry")
+        self.search_entry.set_placeholder_text("Search")
+        self.search_entry.set_has_frame(False)
+        self.search_entry.set_size_request(w, h)
+        self.search_entry.connect("changed", self.on_search_changed)
+        self.search_entry.connect("key-press-event", self.on_search_key_press)
+
+        self.fixed.put(self.search_entry, x, y)
+
+    def clear_program_listbox(self):
+        if not self.program_listbox:
+            return
+
+        for child in list(self.program_listbox.get_children()):
+            self.program_listbox.remove(child)
+
+    def reset_program_scroll(self):
+        if self.program_scrolled:
+            adjustment = self.program_scrolled.get_vadjustment()
+            if adjustment:
+                adjustment.set_value(0)
+
+    def show_categories(self):
+        self.current_view = "categories"
+        self.current_category = None
+        self.populate_category_list(self.categories)
+
+    def show_category_apps(self, category):
+        if not category:
+            return
+
+        self.current_view = "category"
+        self.current_category = category
+        self.populate_app_list(category.apps, include_back=True)
+
+    def show_search_results(self, query):
+        self.current_view = "search"
+        self.current_category = None
+        apps = self.filter_apps(query)
+        self.populate_app_list(apps, include_back=False)
+
+    def populate_category_list(self, categories):
+        if not self.program_listbox:
+            return
+
+        self.clear_program_listbox()
+
+        if not categories:
+            self.add_message_row("Sin categorías")
+            return
+
+        for category in categories:
+            row = self.create_category_row(category)
+            self.program_listbox.add(row)
+
+        self.program_listbox.show_all()
+        self.select_first_row()
+        self.reset_program_scroll()
+
+    def populate_app_list(self, apps, include_back=False):
+        if not self.program_listbox:
+            return
+
+        self.clear_program_listbox()
+        self.filtered_apps = list(apps)
+
+        if include_back:
+            back_row = self.create_back_row()
+            self.program_listbox.add(back_row)
+
+        if not self.filtered_apps:
+            self.add_message_row("Sin resultados")
+        else:
+            for app in self.filtered_apps:
+                row = self.create_program_row(app)
+                self.program_listbox.add(row)
+
+        self.program_listbox.show_all()
+        self.select_first_row()
+        self.reset_program_scroll()
+
+    def add_message_row(self, text):
+        row = Gtk.ListBoxRow()
+        row.set_selectable(False)
+        row.set_activatable(False)
+
+        label = Gtk.Label(label=text)
+        label.get_style_context().add_class("xfcemenu-program-message")
+        label.set_xalign(0)
+        label.set_margin_start(6)
+        label.set_margin_end(6)
+        label.set_margin_top(6)
+        label.set_margin_bottom(6)
+
+        row.add(label)
+        self.program_listbox.add(row)
+        self.program_listbox.show_all()
+
+    def select_first_row(self):
+        if not self.program_listbox:
+            return
+
+        first_row = self.program_listbox.get_row_at_index(0)
+        if first_row and first_row.get_selectable():
+            self.program_listbox.select_row(first_row)
+
+    def create_base_row(self, item, icon_name, label_text):
+        row = Gtk.ListBoxRow()
+        row.set_name("xfcemenu-program-row")
+        row.menu_item = item
+        row.set_activatable(True)
+        row.set_selectable(True)
+        row.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK)
+        row.connect("enter-notify-event", self.on_program_row_enter)
+        row.connect("button-press-event", self.on_program_row_button_press)
+
+        box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
+        box.set_margin_start(4)
+        box.set_margin_end(4)
+        box.set_margin_top(2)
+        box.set_margin_bottom(2)
+
+        icon_pixbuf = None
+        if icon_name:
+            icon_pixbuf = self.load_icon_pixbuf(icon_name, 24)
+
+        if not icon_pixbuf:
+            icon_pixbuf = self.load_icon_pixbuf("application-x-executable", 24)
+
+        if icon_pixbuf:
+            icon = Gtk.Image.new_from_pixbuf(icon_pixbuf)
+        else:
+            icon = Gtk.Image()
+
+        icon.set_size_request(24, 24)
+
+        label = Gtk.Label(label=label_text)
+        label.get_style_context().add_class("xfcemenu-program-label")
+        label.set_xalign(0)
+        label.set_ellipsize(Pango.EllipsizeMode.END)
+        label.set_single_line_mode(True)
+
+        box.pack_start(icon, False, False, 0)
+        box.pack_start(label, True, True, 0)
+
+        row.add(box)
+        return row
+
+    def create_category_row(self, category):
+        row = self.create_base_row(category, category.icon, category.name)
+        row.item_type = "category"
+        row.category = category
+        return row
+
+    def create_back_row(self):
+        # El icono ya indica "volver"; dejamos el texto limpio para que no aparezca doble flecha.
+        item = BackItem("Volver")
+        row = self.create_base_row(item, item.icon, item.name)
+        row.item_type = "back"
+        return row
+
+    def create_program_row(self, app):
+        row = self.create_base_row(app, app.icon, app.name)
+        row.item_type = "app"
+        row.app = app
+        return row
+
+    def on_program_row_enter(self, row, event):
+        """
+        Hace que la selección siga al mouse, pero la pinta GTK.
+        Así la barra visual no es inventada por Cairo.
+        """
+        if self.program_listbox and row.get_selectable():
+            self.program_listbox.select_row(row)
+
+        return False
+
+    def on_program_row_button_press(self, row, event):
+        if event.button == 1 and self.program_listbox and row.get_selectable():
+            self.program_listbox.select_row(row)
+
+        return False
+
+    def on_program_row_activated(self, listbox, row):
+        item_type = getattr(row, "item_type", "")
+
+        if item_type == "category":
+            self.show_category_apps(getattr(row, "category", None))
+            return
+
+        if item_type == "back":
+            if self.search_entry:
+                self.search_entry.set_text("")
+            self.show_categories()
+            return
+
+        if item_type == "app":
+            app = getattr(row, "app", None)
+            self.launch_app(app)
+
+    def on_search_changed(self, entry):
+        query = entry.get_text().strip()
+
+        if query:
+            self.show_search_results(query)
+        else:
+            self.show_categories()
+
+    def on_search_key_press(self, widget, event):
+        if event.keyval == Gdk.KEY_Escape:
+            self.destroy()
+            return True
+
+        if event.keyval == Gdk.KEY_BackSpace:
+            text = widget.get_text()
+            if not text and self.current_view == "category":
+                self.show_categories()
+                return True
+
+        return False
+
+    def launch_app(self, app):
+        if not app or not app.exec_cmd:
+            return
+
+        try:
+            subprocess.Popen(app.exec_cmd, shell=True)
+            self.destroy()
+        except Exception as e:
+            print(f"XFCEMenu: no se pudo abrir '{app.name}': {e}")
 
     def find_user_image_path(self):
         home = os.path.expanduser("~")
@@ -968,8 +1725,26 @@ class XFCEMenuWindow(Gtk.Window):
         self.destroy()
 
     def on_key_press(self, widget, event):
-        if event.keyval == 65307:
+        if event.keyval == Gdk.KEY_Escape:
             self.destroy()
+            return True
+
+        # Al escribir estando el foco fuera del buscador, mandamos el texto al Entry.
+        # Así el filtrado se siente como menú real.
+        char_code = Gdk.keyval_to_unicode(event.keyval)
+        state = event.state
+        blocked_mods = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK
+
+        if self.search_entry and char_code > 0 and not (state & blocked_mods):
+            char = chr(char_code)
+            if char.isprintable():
+                self.search_entry.grab_focus()
+                current = self.search_entry.get_text()
+                self.search_entry.set_text(current + char)
+                self.search_entry.set_position(-1)
+                return True
+
+        return False
 
     def position_near_bottom_left(self):
         try:
