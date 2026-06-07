@@ -49,20 +49,365 @@ class BackItem:
         self.icon = "go-previous"
 
 
+class PlaceItem:
+    def __init__(self, name, icon, xdg_key=None, path=None):
+        self.name = name
+        self.icon = icon
+        self.xdg_key = xdg_key
+        self.path = path
+
+
+class ActionItem:
+    def __init__(self, name, icon, command):
+        self.name = name
+        self.icon = icon
+        self.command = command
+
+
+def detect_language():
+    """
+    Detecta idioma básico desde variables de entorno.
+    Por ahora soporta es/pt/en y cae a es.
+    """
+    lang = (
+        os.environ.get("XFCEMENU_LANG")
+        or os.environ.get("LANGUAGE")
+        or os.environ.get("LC_ALL")
+        or os.environ.get("LC_MESSAGES")
+        or os.environ.get("LANG")
+        or ""
+    ).lower()
+
+    if lang.startswith("pt"):
+        return "pt"
+
+    if lang.startswith("en"):
+        return "en"
+
+    return "es"
+
+
+def get_locale_candidates_for_desktop():
+    """
+    Devuelve sufijos de idioma para leer claves traducidas de archivos .desktop.
+
+    Ejemplo:
+        LANG=es_PY.UTF-8 -> ["es_PY", "es"]
+        LANG=pt_BR.UTF-8 -> ["pt_BR", "pt"]
+
+    También respeta XFCEMENU_LANG para pruebas:
+        XFCEMENU_LANG=pt
+        XFCEMENU_LANG=es
+    """
+    raw = (
+        os.environ.get("XFCEMENU_LANG")
+        or os.environ.get("LC_ALL")
+        or os.environ.get("LC_MESSAGES")
+        or os.environ.get("LANG")
+        or ""
+    )
+
+    raw = raw.strip()
+
+    if not raw:
+        lang = detect_language()
+        return [lang] if lang else []
+
+    # LANGUAGE puede venir como es:en_US:en; tomamos el primero.
+    raw = raw.split(":")[0]
+
+    # Quitar codificación y modificador.
+    raw = raw.split(".")[0]
+    raw = raw.split("@")[0]
+    raw = raw.replace("-", "_")
+
+    result = []
+
+    if raw:
+        result.append(raw)
+
+        if "_" in raw:
+            result.append(raw.split("_")[0])
+
+    base = detect_language()
+
+    if base and base not in result:
+        result.append(base)
+
+    # Quitar duplicados conservando orden.
+    clean = []
+    seen = set()
+
+    for item in result:
+        item = item.strip()
+
+        if item and item not in seen:
+            seen.add(item)
+            clean.append(item)
+
+    return clean
+
+
+def get_localized_desktop_value(entry, key, default=""):
+    """
+    Lee una clave traducida de .desktop:
+        Name[es_PY], Name[es], Name
+        Comment[es_PY], Comment[es], Comment
+
+    Si no existe traducción, cae al valor base.
+    """
+    for locale in get_locale_candidates_for_desktop():
+        localized_key = f"{key}[{locale}]"
+
+        if localized_key in entry:
+            value = entry.get(localized_key, "").strip()
+
+            if value:
+                return value
+
+    return entry.get(key, default).strip()
+
+
+LANG_CATEGORY_LABELS = {
+    "es": {
+        "browse": "Navegar por Internet",
+        "email": "Correo electrónico",
+        "all": "Aplicaciones",
+        "development": "Desarrollo",
+        "games": "Juegos",
+        "graphics": "Gráficos",
+        "internet": "Internet",
+        "multimedia": "Sonido y video",
+        "office": "Oficina",
+        "software": "Centro de software",
+        "places": "Lugares",
+        "system": "Sistema",
+        "utilities": "Accesorios",
+        "wine": "Wine",
+    },
+    "pt": {
+        "browse": "Navegar na Internet",
+        "email": "E-mail",
+        "all": "Aplicações",
+        "development": "Desenvolvimento",
+        "games": "Jogos",
+        "graphics": "Gráficos",
+        "internet": "Internet",
+        "multimedia": "Som & Vídeo",
+        "office": "Escritório",
+        "software": "Centro de Software",
+        "places": "Locais",
+        "system": "Sistema",
+        "utilities": "Acessórios",
+        "wine": "Wine",
+    },
+    "en": {
+        "browse": "Browse Internet",
+        "email": "E-mail",
+        "all": "Applications",
+        "development": "Development",
+        "games": "Games",
+        "graphics": "Graphics",
+        "internet": "Internet",
+        "multimedia": "Sound & Video",
+        "office": "Office",
+        "software": "Software Center",
+        "places": "Places",
+        "system": "System",
+        "utilities": "Accessories",
+        "wine": "Wine",
+    },
+}
+
+
+def tr_category(key, fallback):
+    lang = detect_language()
+    return LANG_CATEGORY_LABELS.get(lang, LANG_CATEGORY_LABELS["es"]).get(key, fallback)
+
+
+UI_LABELS = {
+    "es": {
+        "home": "Carpeta personal",
+        "desktop": "Escritorio",
+        "documents": "Documentos",
+        "downloads": "Descargas",
+        "music": "Música",
+        "pictures": "Imágenes",
+        "videos": "Videos",
+        "settings": "Configuración",
+        "lock": "Bloquear pantalla",
+        "logout": "Cerrar sesión",
+        "restart": "Reiniciar",
+        "shutdown": "Apagar",
+        "no_favorites": "Sin favoritos",
+        "recent_pending": "Elementos recientes pendiente",
+    },
+    "pt": {
+        "home": "Pasta pessoal",
+        "desktop": "Área de trabalho",
+        "documents": "Documentos",
+        "downloads": "Downloads",
+        "music": "Música",
+        "pictures": "Imagens",
+        "videos": "Vídeos",
+        "settings": "Configurações",
+        "lock": "Trancar",
+        "logout": "Sair",
+        "restart": "Reiniciar",
+        "shutdown": "Desligar",
+        "no_favorites": "Sem favoritos",
+        "recent_pending": "Itens recentes pendente",
+    },
+    "en": {
+        "home": "Home Folder",
+        "desktop": "Desktop",
+        "documents": "Documents",
+        "downloads": "Downloads",
+        "music": "Music",
+        "pictures": "Pictures",
+        "videos": "Videos",
+        "settings": "Settings",
+        "lock": "Lock Screen",
+        "logout": "Log Out",
+        "restart": "Restart",
+        "shutdown": "Shut Down",
+        "no_favorites": "No favorites",
+        "recent_pending": "Recent items pending",
+    },
+}
+
+
+def tr_ui(key, fallback):
+    lang = detect_language()
+    return UI_LABELS.get(lang, UI_LABELS["es"]).get(key, fallback)
+
+
+
+LEGACY_BUTTON_LABELS = {
+    "es": {
+        "home": "Carpeta personal",
+        "documents": "Documentos",
+        "pictures": "Imágenes",
+        "music": "Música",
+        "videos": "Videos",
+        "games": "Juegos",
+        "computer": "Equipo",
+        "network": "Red",
+        "network config": "Conectar al servidor",
+        "control panel": "Configuración",
+        "package manager": "Gestor de paquetes",
+        "help": "Ayuda",
+        "search": "Buscar",
+        "run": "Ejecutar...",
+        "power": "",
+        "aux": "",
+        "lock": "Bloquear",
+        "logoutnow": "Cerrar sesión",
+        "logout": "Cerrar sesión",
+        "shutdown": "Apagar",
+        "restart": "Reiniciar",
+        "reboot": "Reiniciar",
+        "suspend": "Suspender",
+        "hibernate": "Hibernar",
+        "switch user": "Cambiar usuario",
+    },
+    "pt": {
+        "home": "Pasta pessoal",
+        "documents": "Documentos",
+        "pictures": "Imagens",
+        "music": "Música",
+        "videos": "Vídeos",
+        "games": "Jogos",
+        "computer": "Computador",
+        "network": "Rede",
+        "network config": "Conectar ao servidor",
+        "control panel": "Configurações",
+        "package manager": "Gerenciador de pacotes",
+        "help": "Ajuda",
+        "search": "Procurar",
+        "run": "Executar...",
+        "power": "",
+        "aux": "",
+        "lock": "Trancar",
+        "logoutnow": "Sair",
+        "logout": "Sair",
+        "shutdown": "Desligar",
+        "restart": "Reiniciar",
+        "reboot": "Reiniciar",
+        "suspend": "Suspender",
+        "hibernate": "Hibernar",
+        "switch user": "Trocar usuário",
+    },
+    "en": {
+        "home": "Home Folder",
+        "documents": "Documents",
+        "pictures": "Pictures",
+        "music": "Music",
+        "videos": "Videos",
+        "games": "Games",
+        "computer": "Computer",
+        "network": "Network",
+        "network config": "Connect to Server",
+        "control panel": "Control Center",
+        "package manager": "Package Manager",
+        "help": "Help",
+        "search": "Search",
+        "run": "Run...",
+        "power": "",
+        "aux": "",
+        "lock": "Lock",
+        "logoutnow": "Log Out",
+        "logout": "Log Out",
+        "shutdown": "Shut Down",
+        "restart": "Restart",
+        "reboot": "Restart",
+        "suspend": "Suspend",
+        "hibernate": "Hibernate",
+        "switch user": "Switch User",
+    },
+}
+
+
+def tr_legacy_button_label(command, fallback):
+    command_key = (command or "").strip().lower()
+    fallback_key = (fallback or "").strip().lower()
+    lang = detect_language()
+
+    # Algunos temas legacy tienen errores: Videos con Command="Games".
+    # En esos casos, el Name del botón es más confiable que el Command.
+    if fallback_key in LEGACY_BUTTON_LABELS.get(lang, {}):
+        return LEGACY_BUTTON_LABELS[lang][fallback_key]
+
+    if command_key in LEGACY_BUTTON_LABELS.get(lang, {}):
+        return LEGACY_BUTTON_LABELS[lang][command_key]
+
+    if fallback_key in LEGACY_BUTTON_LABELS.get("es", {}):
+        return LEGACY_BUTTON_LABELS["es"][fallback_key]
+
+    if command_key in LEGACY_BUTTON_LABELS.get("es", {}):
+        return LEGACY_BUTTON_LABELS["es"][command_key]
+
+    return fallback
+
+
 CATEGORY_DEFINITIONS = [
     # key, label, icon, matcher
-    ("browse", "Browse Internet", "internet-web-browser", "browser"),
-    ("email", "E-mail", "internet-mail", "email"),
-    ("all", "Applications", "applications-other", "all"),
-    ("development", "Development", "applications-development", "Development"),
-    ("games", "Games", "applications-games", "Game"),
-    ("graphics", "Graphics", "applications-graphics", "Graphics"),
-    ("internet", "Internet", "applications-internet", "Network"),
-    ("multimedia", "Multimedia", "applications-multimedia", "AudioVideo;Audio;Video;Player;Recorder"),
-    ("office", "Office", "applications-office", "Office"),
-    ("system", "System", "applications-system", "System;Settings;PackageManager"),
-    ("utilities", "Utilities", "applications-utilities", "Utility;Accessories;FileManager;Archiving;Compression;TextEditor;TerminalEmulator"),
-    ("wine", "Wine", "applications-wine", "Wine;X-Wine"),
+    ("browse", tr_category("browse", "Browse Internet"), "internet-web-browser", "browser"),
+    ("email", tr_category("email", "E-mail"), "internet-mail", "email"),
+
+    # Categorías principales estilo GnoMenu.
+    ("all", tr_category("all", "Applications"), "applications-other", "all"),
+    ("utilities", tr_category("utilities", "Utilities"), "applications-utilities", "Utility;Accessories;FileManager;Archiving;Compression;TextEditor;TerminalEmulator"),
+    ("office", tr_category("office", "Office"), "applications-office", "Office"),
+    ("graphics", tr_category("graphics", "Graphics"), "applications-graphics", "Graphics"),
+    ("internet", tr_category("internet", "Internet"), "applications-internet", "Network"),
+    ("games", tr_category("games", "Games"), "applications-games", "Game"),
+    ("multimedia", tr_category("multimedia", "Multimedia"), "applications-multimedia", "AudioVideo;Audio;Video;Player;Recorder"),
+    ("development", tr_category("development", "Development"), "applications-development", "Development"),
+    ("software", tr_category("software", "Software Center"), "system-software-install", "PackageManager;System;Settings"),
+    ("places", tr_category("places", "Places"), "folder", "places"),
+    ("system", tr_category("system", "System"), "applications-system", "System;Settings"),
+    ("wine", tr_category("wine", "Wine"), "applications-wine", "Wine;X-Wine"),
 ]
 
 
@@ -174,6 +519,40 @@ def tryexec_available(try_exec):
     return shutil.which(command) is not None
 
 
+def get_xdg_user_dir(key, fallback):
+    if key == "HOME":
+        return os.path.expanduser("~")
+
+    try:
+        output = subprocess.check_output(
+            ["xdg-user-dir", key],
+            text=True,
+            stderr=subprocess.DEVNULL,
+            timeout=1
+        ).strip()
+
+        if output:
+            return os.path.expanduser(output)
+    except Exception:
+        pass
+
+    return os.path.expanduser(fallback or "~")
+
+
+def open_path(path):
+    if not path:
+        return
+
+    try:
+        subprocess.Popen(
+            ["xdg-open", os.path.expanduser(path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+    except Exception as e:
+        print(f"XFCEMenu: no se pudo abrir ruta '{path}': {e}")
+
+
 def load_desktop_apps():
     """
     Carga programas reales desde .desktop.
@@ -236,7 +615,11 @@ def load_desktop_apps():
             if not tryexec_available(entry.get("TryExec", "")):
                 continue
 
-            name = entry.get("Name", "").strip()
+            name = get_localized_desktop_value(entry, "Name", "")
+
+            if not name:
+                name = get_localized_desktop_value(entry, "GenericName", "")
+
             exec_cmd = clean_desktop_exec(entry.get("Exec", "").strip())
 
             if not name or not exec_cmd:
@@ -256,7 +639,7 @@ def load_desktop_apps():
                 name=name,
                 exec_cmd=exec_cmd,
                 icon=entry.get("Icon", "").strip(),
-                comment=entry.get("Comment", "").strip(),
+                comment=get_localized_desktop_value(entry, "Comment", ""),
                 desktop_file=desktop_path,
                 categories=entry.get("Categories", "").strip()
             ))
@@ -280,6 +663,8 @@ class XFCEMenuWindow(Gtk.Window):
         self.filtered_apps = list(self.apps)
         self.current_view = "categories"
         self.current_category = None
+        self.current_tab_command = "1"
+        self.active_tab_event = None
         self.program_scrolled = None
         self.program_listbox = None
         self.search_entry = None
@@ -327,6 +712,7 @@ class XFCEMenuWindow(Gtk.Window):
         self.add(self.fixed)
 
         self.draw_program_widgets()
+        self.draw_tabs()
 
         self.draw_user_icon()
         self.draw_buttons()
@@ -596,10 +982,20 @@ class XFCEMenuWindow(Gtk.Window):
         if not icon_name:
             return None
 
-        pixbuf = self.load_pixbuf(icon_name)
+        # Si el icono viene como archivo legacy real, intentamos cargarlo desde el tema.
+        # Si viene como nombre GTK sin extensión (applications-office, user-home, etc.),
+        # saltamos directo al tema de iconos para evitar ruido de "imagen no encontrada".
+        looks_like_file = (
+            os.path.isabs(icon_name)
+            or "/" in icon_name
+            or icon_name.lower().endswith((".png", ".svg", ".xpm", ".jpg", ".jpeg"))
+        )
 
-        if pixbuf:
-            return self.scale_pixbuf_contain(pixbuf, size, size)
+        if looks_like_file:
+            pixbuf = self.load_pixbuf(icon_name)
+
+            if pixbuf:
+                return self.scale_pixbuf_contain(pixbuf, size, size)
 
         icon_theme = Gtk.IconTheme.get_default()
 
@@ -618,7 +1014,20 @@ class XFCEMenuWindow(Gtk.Window):
             "internet-web-browser": "web-browser",
             "web-browser": "applications-internet",
             "internet-mail": "mail-message-new",
+            "applications-other": "applications-accessories",
+            "applications-accessories": "applications-accessories",
+            "applications-development": "applications-development",
+            "applications-games": "applications-games",
+            "applications-graphics": "applications-graphics",
+            "applications-internet": "applications-internet",
+            "applications-multimedia": "applications-multimedia",
+            "applications-office": "applications-office",
+            "applications-system": "applications-system",
+            "applications-utilities": "applications-utilities",
             "applications-wine": "wine",
+            "folder-download": "folder-downloads",
+            "folder-downloads": "folder-downloads",
+            "user-desktop": "user-desktop",
             "gtk-network": "network-workgroup",
             "gnome-network-properties": "preferences-system-network",
             "gnome-control-center": "preferences-system",
@@ -634,6 +1043,11 @@ class XFCEMenuWindow(Gtk.Window):
             "folder-music": "folder-music",
             "folder-videos": "folder-videos",
             "folder-pictures": "folder-pictures",
+            "system-lock-screen": "system-lock-screen",
+            "system-log-out": "system-log-out",
+            "system-reboot": "system-reboot",
+            "system-shutdown": "system-shutdown",
+            "system-suspend": "system-suspend",
             "gtk-missing-image": "image-missing",
         }
 
@@ -829,8 +1243,8 @@ class XFCEMenuWindow(Gtk.Window):
             category = MenuCategory(key, name, icon, matcher)
             category.apps = [app for app in self.apps if app_matches_category(app, matcher)]
 
-            # En la vista inicial no mostramos categorías vacías, salvo Applications.
-            if category.apps or key == "all":
+            # En la vista inicial no mostramos categorías vacías, salvo Applications y Places/Locais.
+            if category.apps or key in ("all", "places"):
                 category.apps.sort(key=lambda app: app.name.lower())
                 categories.append(category)
 
@@ -917,7 +1331,7 @@ class XFCEMenuWindow(Gtk.Window):
 
         self.search_entry = Gtk.Entry()
         self.search_entry.set_name("xfcemenu-search-entry")
-        self.search_entry.set_placeholder_text("Search")
+        self.search_entry.set_placeholder_text("Procurar" if detect_language() == "pt" else ("Search" if detect_language() == "en" else "Buscar"))
         self.search_entry.set_has_frame(False)
         self.search_entry.set_size_request(w, h)
         self.search_entry.connect("changed", self.on_search_changed)
@@ -942,6 +1356,11 @@ class XFCEMenuWindow(Gtk.Window):
         self.current_view = "categories"
         self.current_category = None
         self.populate_category_list(self.categories)
+
+    def show_all_apps(self):
+        self.current_view = "all_apps"
+        self.current_category = None
+        self.populate_app_list(self.apps, include_back=False)
 
     def show_category_apps(self, category):
         if not category:
@@ -1103,13 +1522,42 @@ class XFCEMenuWindow(Gtk.Window):
         item_type = getattr(row, "item_type", "")
 
         if item_type == "category":
-            self.show_category_apps(getattr(row, "category", None))
+            category = getattr(row, "category", None)
+
+            if category and getattr(category, "key", "") == "places":
+                self.show_computer_items()
+                return
+
+            self.show_category_apps(category)
             return
 
         if item_type == "back":
             if self.search_entry:
                 self.search_entry.set_text("")
             self.show_categories()
+            return
+
+        if item_type == "place":
+            item = getattr(row, "place_item", None)
+
+            if item:
+                path = item.path
+
+                if item.xdg_key:
+                    path = get_xdg_user_dir(item.xdg_key, item.path or "~")
+
+                open_path(path)
+                self.destroy()
+
+            return
+
+        if item_type == "action":
+            item = getattr(row, "action_item", None)
+
+            if item and item.command:
+                run_command(item.command)
+                self.destroy()
+
             return
 
         if item_type == "app":
@@ -1462,6 +1910,453 @@ class XFCEMenuWindow(Gtk.Window):
         if self.avatar_image_widget and self.avatar_normal_pixbuf:
             self.avatar_image_widget.set_from_pixbuf(self.avatar_normal_pixbuf)
 
+    def draw_tabs(self):
+        tabs = getattr(self.theme, "tabs", [])
+
+        if not tabs:
+            return
+
+        for tab in tabs:
+            self.draw_tab(tab)
+
+    def get_tab_attr(self, tab, *names, default=None):
+        for name in names:
+            if hasattr(tab, name):
+                value = getattr(tab, name)
+                if value is not None and value != "":
+                    return value
+
+        return default
+
+    def draw_tab(self, tab):
+        event = Gtk.EventBox()
+        event.set_visible_window(False)
+
+        container = Gtk.Fixed()
+
+        try:
+            container.set_has_window(False)
+        except Exception:
+            pass
+
+        normal_pixbuf = self.load_pixbuf(self.get_tab_attr(tab, "image", "Image", default=""))
+        selected_pixbuf = self.load_pixbuf(self.get_tab_attr(tab, "image_sel", "imageSel", "ImageSel", default=""))
+
+        if not selected_pixbuf:
+            selected_pixbuf = normal_pixbuf
+
+        width = 96
+        height = 96
+        bg_widget = None
+
+        if normal_pixbuf:
+            bg_widget = Gtk.Image.new_from_pixbuf(normal_pixbuf)
+            container.put(bg_widget, 0, 0)
+            width = max(width, normal_pixbuf.get_width())
+            height = max(height, normal_pixbuf.get_height())
+
+        icon_name = self.get_tab_attr(tab, "tab_icon", "tabIcon", "TabIcon", "icon", "Icon", default="")
+        icon_size = int(self.get_tab_attr(tab, "tab_icon_size", "tabIconSize", "TabIconSize", default=32) or 32)
+        icon_x = int(self.get_tab_attr(tab, "tab_icon_x", "tabIconX", "TabIconX", default=0) or 0)
+        icon_y = int(self.get_tab_attr(tab, "tab_icon_y", "tabIconY", "TabIconY", default=0) or 0)
+
+        icon_pixbuf = self.load_icon_pixbuf(icon_name, icon_size)
+
+        if icon_pixbuf:
+            icon = Gtk.Image.new_from_pixbuf(icon_pixbuf)
+            container.put(icon, icon_x, icon_y)
+
+        label_text = self.extract_tab_label_text(tab)
+
+        if label_text:
+            label = Gtk.Label()
+            label.set_use_markup(True)
+
+            markup = self.get_tab_attr(tab, "markup", "Markup", default="")
+
+            # Los tabs legacy suelen estar sobre zonas oscuras del skin.
+            # Calculamos el fondo debajo del texto y forzamos un color legible.
+            tab_x_abs = int(self.get_tab_attr(tab, "x", "tab_x", "tabX", "TabX", default=0) or 0)
+            tab_y_abs = int(self.get_tab_attr(tab, "y", "tab_y", "tabY", "TabY", default=0) or 0)
+            text_x_abs = int(self.get_tab_attr(tab, "text_x", "textX", "TextX", default=0) or 0)
+            text_y_abs = int(self.get_tab_attr(tab, "text_y", "textY", "TextY", default=0) or 0)
+
+            forced_color = self.readable_text_color_for_area(
+                tab_x_abs + text_x_abs,
+                tab_y_abs + text_y_abs,
+                width,
+                24
+            )
+
+            self.safe_set_markup_or_text(label, markup, label_text, forced_color=forced_color)
+
+            label.set_xalign(0.5)
+
+            text_x = int(self.get_tab_attr(tab, "text_x", "textX", "TextX", default=0) or 0)
+            text_y = int(self.get_tab_attr(tab, "text_y", "textY", "TextY", default=0) or 0)
+
+            label.set_size_request(width, 22)
+            container.put(label, text_x, text_y)
+
+        event.add(container)
+        event.set_size_request(width, height)
+
+        event.normal_pixbuf = normal_pixbuf
+        event.selected_pixbuf = selected_pixbuf
+        event.bg_widget = bg_widget
+        event.tab = tab
+
+        event.connect("button-press-event", self.on_tab_clicked, tab, event)
+        event.connect("enter-notify-event", self.on_tab_enter, tab, event)
+        event.connect("leave-notify-event", self.on_tab_leave, tab, event)
+
+        x = int(self.get_tab_attr(tab, "x", "tab_x", "tabX", "TabX", default=0) or 0)
+        y = int(self.get_tab_attr(tab, "y", "tab_y", "tabY", "TabY", default=0) or 0)
+
+        self.fixed.put(event, x, y)
+
+        command = str(self.get_tab_attr(tab, "command", "Command", default="")).strip()
+
+        if command == self.current_tab_command:
+            self.active_tab_event = event
+            self.set_tab_selected(event, True)
+
+    def extract_tab_label_text(self, tab):
+        name = self.get_tab_attr(tab, "name", "Name", default="") or ""
+        markup = self.get_tab_attr(tab, "markup", "Markup", default="") or ""
+
+        if markup:
+            plain = re.sub(r"<[^>]+>", "", str(markup))
+            plain = html.unescape(plain).strip()
+
+            if plain:
+                return plain
+
+        return str(name)
+
+    def set_tab_selected(self, event, selected):
+        bg_widget = getattr(event, "bg_widget", None)
+
+        if not bg_widget:
+            return
+
+        pixbuf = getattr(event, "selected_pixbuf", None) if selected else getattr(event, "normal_pixbuf", None)
+
+        if pixbuf:
+            bg_widget.set_from_pixbuf(pixbuf)
+
+    def clear_active_tab(self):
+        if self.active_tab_event:
+            self.set_tab_selected(self.active_tab_event, False)
+
+        self.active_tab_event = None
+
+    def select_tab_event(self, event):
+        self.clear_active_tab()
+        self.active_tab_event = event
+        self.set_tab_selected(event, True)
+
+    def on_tab_enter(self, widget, event, tab, tab_event):
+        self.set_tab_selected(tab_event, True)
+        return False
+
+    def on_tab_leave(self, widget, event, tab, tab_event):
+        if tab_event is not self.active_tab_event:
+            self.set_tab_selected(tab_event, False)
+
+        return False
+
+    def on_tab_clicked(self, widget, event, tab, tab_event):
+        if event.button != 1:
+            return False
+
+        self.activate_tab(tab)
+        self.select_tab_event(tab_event)
+        return True
+
+    def activate_tab(self, tab):
+        command = str(self.get_tab_attr(tab, "command", "Command", default="")).strip()
+
+        if self.search_entry:
+            self.search_entry.set_text("")
+
+        self.current_tab_command = command
+
+        if command == "1":
+            self.show_categories()
+            return
+
+        if command == "2":
+            self.show_recent_apps()
+            return
+
+        if command == "4":
+            self.show_recent_items()
+            return
+
+        if command == "7":
+            self.show_favorites()
+            return
+
+        if command == "8":
+            self.show_computer_items()
+            return
+
+        if command == "9":
+            self.show_leave_items()
+            return
+
+        if command == "10":
+            self.show_web_bookmarks()
+            return
+
+        print(f"XFCEMenu: tab command no soportado todavía: {command}")
+
+    def show_recent_items(self):
+        self.current_view = "recent"
+        self.current_category = None
+        self.clear_program_listbox()
+        self.add_message_row(tr_ui("recent_pending", "Recent items pendiente"))
+        self.select_first_row()
+        self.reset_program_scroll()
+
+    def show_recent_apps(self):
+        self.current_view = "recent_apps"
+        self.current_category = None
+
+        # Fallback liviano: mostramos las primeras apps ordenadas.
+        # Más adelante se puede reemplazar por historial real.
+        recent_apps = self.apps[:12]
+        self.populate_app_list(recent_apps, include_back=False)
+
+    def show_web_bookmarks(self):
+        self.current_view = "web_bookmarks"
+        self.current_category = None
+
+        # GnoMenu tenía soporte para marcadores del navegador.
+        # Por ahora dejamos accesos web comunes sin depender de Firefox/Chrome internamente.
+        items = [
+            ActionItem("Abrir navegador", "internet-web-browser", "xdg-open https://www.google.com"),
+            ActionItem("Google", "internet-web-browser", "xdg-open https://www.google.com"),
+            ActionItem("YouTube", "applications-internet", "xdg-open https://www.youtube.com"),
+            ActionItem("Wikipedia", "applications-internet", "xdg-open https://www.wikipedia.org"),
+        ]
+
+        self.populate_special_item_list(items)
+
+    def show_leave_items(self):
+        self.current_view = "leave"
+        self.current_category = None
+
+        # En pruebas conviene que Apagar/Reiniciar pasen por el diálogo/sesión XFCE,
+        # no por comandos directos peligrosos.
+        items = [
+            ActionItem(tr_ui("lock", "Bloquear pantalla"), "system-lock-screen", "Lock"),
+            ActionItem(tr_ui("logout", "Cerrar sesión"), "system-log-out", "LogoutNow"),
+            ActionItem(tr_ui("restart", "Reiniciar"), "system-reboot", "Restart"),
+            ActionItem(tr_ui("shutdown", "Apagar"), "system-shutdown", "Shutdown"),
+        ]
+
+        self.populate_special_item_list(items)
+
+    def show_power_items(self):
+        self.current_view = "power"
+        self.current_category = None
+
+        items = [
+            ActionItem(tr_ui("lock", "Bloquear pantalla"), "system-lock-screen", "Lock"),
+            ActionItem(tr_ui("logout", "Cerrar sesión"), "system-log-out", "LogoutNow"),
+            ActionItem(tr_ui("suspend", "Suspender"), "system-suspend", "Suspend"),
+            ActionItem(tr_ui("restart", "Reiniciar"), "system-reboot", "Restart"),
+            ActionItem(tr_ui("shutdown", "Apagar"), "system-shutdown", "Shutdown"),
+        ]
+
+        self.populate_special_item_list(items)
+
+    def load_favorite_desktop_ids(self):
+        """
+        Lee favoritos simples desde:
+            ~/.config/xfcemenu/favorites.txt
+
+        Formatos aceptados por línea:
+            firefox.desktop
+            /usr/share/applications/firefox.desktop
+            Firefox
+        """
+        fav_path = os.path.expanduser("~/.config/xfcemenu/favorites.txt")
+
+        if not os.path.isfile(fav_path):
+            return []
+
+        result = []
+
+        try:
+            with open(fav_path, "r", encoding="utf-8", errors="replace") as f:
+                for line in f:
+                    line = line.strip()
+
+                    if not line or line.startswith("#"):
+                        continue
+
+                    result.append(line.lower())
+        except Exception:
+            return []
+
+        return result
+
+    def show_favorites(self):
+        self.current_view = "favorites"
+        self.current_category = None
+
+        configured = self.load_favorite_desktop_ids()
+        favorites = []
+
+        if configured:
+            for app in self.apps:
+                name = (app.name or "").lower()
+                cmd = (app.exec_cmd or "").lower()
+                desktop_path = (app.desktop_file or "").lower()
+                desktop_base = os.path.basename(desktop_path)
+
+                if any(
+                    fav == desktop_base
+                    or fav == desktop_path
+                    or fav in name
+                    or fav in cmd
+                    for fav in configured
+                ):
+                    favorites.append(app)
+
+        if not favorites:
+            favorite_terms = {
+                "firefox",
+                "chromium",
+                "chrome",
+                "thunar",
+                "terminal",
+                "xfce4-terminal",
+                "settings",
+                "configuración",
+                "configuracion",
+                "geany",
+                "libreoffice",
+            }
+
+            for app in self.apps:
+                name = (app.name or "").lower()
+                cmd = (app.exec_cmd or "").lower()
+
+                if any(term in name or term in cmd for term in favorite_terms):
+                    favorites.append(app)
+
+        # Evitar duplicados conservando orden.
+        unique = []
+        seen = set()
+
+        for app in favorites:
+            key = ((app.name or "").lower(), (app.exec_cmd or "").lower())
+
+            if key not in seen:
+                seen.add(key)
+                unique.append(app)
+
+        favorites = unique
+
+        if not favorites:
+            self.clear_program_listbox()
+            self.add_message_row(tr_ui("no_favorites", "Sin favoritos"))
+            self.select_first_row()
+            self.reset_program_scroll()
+            return
+
+        self.populate_app_list(favorites, include_back=False)
+
+    def show_computer_items(self):
+        self.current_view = "computer"
+        self.current_category = None
+
+        items = [
+            PlaceItem(tr_ui("home", "Carpeta personal"), "user-home", "HOME", "~"),
+            PlaceItem(tr_ui("desktop", "Escritorio"), "user-desktop", "DESKTOP", "~/Escritorio"),
+            PlaceItem(tr_ui("documents", "Documentos"), "folder-documents", "DOCUMENTS", "~/Documentos"),
+            PlaceItem(tr_ui("downloads", "Descargas"), "folder-download", "DOWNLOAD", "~/Descargas"),
+            PlaceItem(tr_ui("music", "Música"), "folder-music", "MUSIC", "~/Música"),
+            PlaceItem(tr_ui("pictures", "Imágenes"), "folder-pictures", "PICTURES", "~/Imágenes"),
+            PlaceItem(tr_ui("videos", "Videos"), "folder-videos", "VIDEOS", "~/Vídeos"),
+            ActionItem(tr_ui("settings", "Configuración"), "preferences-system", "xfce4-settings-manager"),
+        ]
+
+        self.populate_special_item_list(items)
+
+    def populate_special_item_list(self, items):
+        if not self.program_listbox:
+            return
+
+        self.clear_program_listbox()
+
+        for item in items:
+            row = self.create_special_item_row(item)
+            self.program_listbox.add(row)
+
+        self.program_listbox.show_all()
+        self.select_first_row()
+        self.reset_program_scroll()
+
+    def create_special_item_row(self, item):
+        row = self.create_base_row(item, item.icon, item.name)
+
+        if isinstance(item, PlaceItem):
+            row.item_type = "place"
+            row.place_item = item
+        elif isinstance(item, ActionItem):
+            row.item_type = "action"
+            row.action_item = item
+        else:
+            row.item_type = "special"
+
+        return row
+
+
+    def safe_set_markup_or_text(self, label, markup, text, forced_color=None):
+        """
+        Los temas legacy a veces guardan en Markup cadenas decorativas inválidas
+        para Pango/GTK, por ejemplo "<>", "<s><>" o "< ><>".
+
+        Regla segura:
+        - Si el Markup contiene [TEXT], lo usamos como plantilla Pango y escapamos el texto.
+        - Si forced_color está definido, reemplazamos el foreground del tema.
+        - Si no contiene [TEXT], ignoramos ese Markup y mostramos texto plano.
+        - Si Pango falla igual, caemos siempre a texto plano.
+        """
+        plain_text = str(text or "")
+        markup_text = str(markup or "")
+
+        if forced_color:
+            try:
+                label.override_color(Gtk.StateFlags.NORMAL, Gdk.RGBA())
+            except Exception:
+                pass
+
+        if markup_text and "[TEXT]" in markup_text:
+            try:
+                if forced_color:
+                    markup_text = self.sanitize_markup_foreground(markup_text, forced_color)
+
+                label.set_markup(markup_text.replace("[TEXT]", html.escape(plain_text)))
+                return
+            except Exception:
+                pass
+
+        label.set_text(plain_text)
+
+        if forced_color:
+            rgba = Gdk.RGBA()
+            if rgba.parse(forced_color):
+                try:
+                    label.override_color(Gtk.StateFlags.NORMAL, rgba)
+                except Exception:
+                    pass
+
     def draw_buttons(self):
         for button in self.theme.buttons:
             self.draw_button(button)
@@ -1480,6 +2375,90 @@ class XFCEMenuWindow(Gtk.Window):
                 return pixbuf
 
         return pixbuf
+
+    def get_background_luminance_at(self, x, y, w, h):
+        """
+        Devuelve luminosidad promedio del PNG de fondo en una zona.
+        Sirve para elegir texto claro/oscuro en botones legacy.
+        """
+        if not self.background_pixbuf:
+            return 255.0
+
+        bg_w = self.background_pixbuf.get_width()
+        bg_h = self.background_pixbuf.get_height()
+
+        x0 = max(0, min(bg_w, int(x)))
+        y0 = max(0, min(bg_h, int(y)))
+        x1 = max(0, min(bg_w, int(x + max(1, w))))
+        y1 = max(0, min(bg_h, int(y + max(1, h))))
+
+        if x1 <= x0 or y1 <= y0:
+            return 255.0
+
+        rowstride = self.background_pixbuf.get_rowstride()
+        n_channels = self.background_pixbuf.get_n_channels()
+        has_alpha = self.background_pixbuf.get_has_alpha()
+        pixels = self.background_pixbuf.get_pixels()
+
+        step_x = max(1, int((x1 - x0) / 16))
+        step_y = max(1, int((y1 - y0) / 16))
+
+        total = 0.0
+        count = 0
+
+        for py in range(y0, y1, step_y):
+            for px in range(x0, x1, step_x):
+                offset = py * rowstride + px * n_channels
+
+                try:
+                    r = pixels[offset]
+                    g = pixels[offset + 1]
+                    b = pixels[offset + 2]
+                    a = pixels[offset + 3] if has_alpha and n_channels >= 4 else 255
+                except Exception:
+                    continue
+
+                if a < 40:
+                    continue
+
+                luminance = (0.2126 * r) + (0.7152 * g) + (0.0722 * b)
+                total += luminance
+                count += 1
+
+        if count == 0:
+            return 255.0
+
+        return total / float(count)
+
+    def readable_text_color_for_area(self, x, y, w, h):
+        luminance = self.get_background_luminance_at(x, y, w, h)
+
+        # Umbral un poco alto porque muchos temas legacy tienen fondos con textura.
+        if luminance < 145.0:
+            return "#f2f2f2"
+
+        return "#202020"
+
+    def sanitize_markup_foreground(self, markup, forced_color):
+        """
+        Reemplaza foreground='...' o foreground="..." en Markup legacy.
+        Si no trae foreground pero trae [TEXT], lo envuelve en span.
+        """
+        markup = str(markup or "")
+
+        if not markup:
+            return markup
+
+        markup = re.sub(
+            r"foreground\s*=\s*(['\"])[^'\"]*\1",
+            f"foreground='{forced_color}'",
+            markup
+        )
+
+        if "foreground=" not in markup and "[TEXT]" in markup:
+            markup = f"<span foreground='{forced_color}'>" + markup + "</span>"
+
+        return markup
 
     def draw_button(self, button):
         if button.name == ":SEPARATOR:":
@@ -1560,13 +2539,16 @@ class XFCEMenuWindow(Gtk.Window):
             label = Gtk.Label()
             label.set_use_markup(True)
 
-            if button.markup:
-                try:
-                    label.set_markup(button.markup.replace("[TEXT]", label_text))
-                except Exception:
-                    label.set_text(label_text)
-            else:
-                label.set_text(label_text)
+            # Color automático por zona del fondo. Esto corrige temas como Whise/Gray
+            # donde el XML fuerza texto oscuro sobre panel oscuro.
+            forced_color = self.readable_text_color_for_area(
+                button.x + button.text_x,
+                button.y + button.text_y,
+                max(10, width - button.text_x - 4),
+                height
+            )
+
+            self.safe_set_markup_or_text(label, button.markup, label_text, forced_color=forced_color)
 
             label.set_xalign(0)
             label.set_size_request(max(10, width - button.text_x - 4), height)
@@ -1675,7 +2657,8 @@ class XFCEMenuWindow(Gtk.Window):
             if "[TEXT]" not in button.markup and plain == "":
                 return ""
 
-        return button.name
+        translated = tr_legacy_button_label(command_lower, button.name)
+        return translated
 
     def draw_labels(self):
         for label_def in self.theme.labels:
@@ -1687,13 +2670,7 @@ class XFCEMenuWindow(Gtk.Window):
             label = Gtk.Label()
             label.set_use_markup(True)
 
-            if label_def.markup:
-                try:
-                    label.set_markup(label_def.markup.replace("[TEXT]", text))
-                except Exception:
-                    label.set_text(text)
-            else:
-                label.set_text(text)
+            self.safe_set_markup_or_text(label, label_def.markup, text)
 
             self.fixed.put(label, label_def.x, label_def.y)
 
@@ -1709,17 +2686,193 @@ class XFCEMenuWindow(Gtk.Window):
         except Exception:
             return ""
 
+    def handle_legacy_button_action(self, command):
+        """
+        Ejecuta acciones legacy conocidas por Command.
+        Esto evita depender de rutas escritas en inglés dentro del XML.
+        """
+        command = (command or "").strip()
+        command_lower = command.lower()
+
+        folder_map = {
+            "home": ("HOME", "~"),
+            "documents": ("DOCUMENTS", "~/Documentos"),
+            "pictures": ("PICTURES", "~/Imágenes"),
+            "music": ("MUSIC", "~/Música"),
+            "videos": ("VIDEOS", "~/Vídeos"),
+        }
+
+        if command_lower in folder_map:
+            key, fallback = folder_map[command_lower]
+            open_path(get_xdg_user_dir(key, fallback))
+            return True
+
+        # Algunos temas viejos usan Games por error en el botón Videos.
+        # No lo tratamos como carpeta para no romper botones reales de juegos.
+
+        if command_lower == "computer":
+            open_path(os.path.expanduser("~"))
+            return True
+
+        if command_lower == "network":
+            run_command("thunar network:///")
+            return True
+
+        if command_lower == "network config":
+            run_command("exo-open --launch WebBrowser")
+            return True
+
+        if command_lower == "control panel":
+            run_command("xfce4-settings-manager")
+            return True
+
+        if command_lower == "package manager":
+            # MX Linux suele tener mx-packageinstaller; si no, intentamos Synaptic/Pamac.
+            if shutil.which("mx-packageinstaller"):
+                run_command("mx-packageinstaller")
+            elif shutil.which("synaptic"):
+                run_command("synaptic")
+            elif shutil.which("pamac-manager"):
+                run_command("pamac-manager")
+            else:
+                run_command("xfce4-settings-manager")
+            return True
+
+        if command_lower == "help":
+            if shutil.which("xfhelp4"):
+                run_command("xfhelp4")
+            else:
+                run_command("exo-open --launch WebBrowser https://docs.xfce.org/")
+            return True
+
+        if command_lower == "run":
+            if shutil.which("xfce4-appfinder"):
+                run_command("xfce4-appfinder --collapsed")
+            else:
+                run_command("xfrun4")
+            return True
+
+        # Órdenes de energía/sesión.
+        # Power y Aux se interpretan como submenú seguro, no como apagado directo.
+        if command_lower in ("power", "aux", "3"):
+            self.show_power_items()
+            return True
+
+        if command_lower in ("lock", "lock screen"):
+            run_command("xflock4")
+            return True
+
+        if command_lower in ("logout", "logoutnow", "log out", "logoff", "log off"):
+            run_command("xfce4-session-logout --logout")
+            return True
+
+        if command_lower in ("shutdown", "shut down", "halt"):
+            # Si querés máxima seguridad, cambiar por: xfce4-session-logout
+            run_command("xfce4-session-logout --halt")
+            return True
+
+        if command_lower in ("restart", "reboot"):
+            run_command("xfce4-session-logout --reboot")
+            return True
+
+        if command_lower == "suspend":
+            run_command("xfce4-session-logout --suspend")
+            return True
+
+        if command_lower == "hibernate":
+            run_command("xfce4-session-logout --hibernate")
+            return True
+
+        return False
+
+
+    def handle_internal_menu_command(self, command):
+        """
+        Interpreta comandos internos heredados de GnoMenu.
+        Estos no deben ejecutarse como binarios del sistema.
+        """
+        command = (command or "").strip()
+        command_lower = command.lower()
+
+        if command_lower in ("1", ":applications:", "applications", "apps", "categories"):
+            self.show_categories()
+            return True
+
+        if command_lower in ("2", ":recentapps:", ":recent_apps:", "recentapps", "recent apps"):
+            self.show_recent_apps()
+            return True
+
+        if command_lower in ("4", ":recent:", ":recentfiles:", ":recent_files:", "recent", "recent files", "recently used"):
+            self.show_recent_items()
+            return True
+
+        if command_lower in ("7", ":favorites:", "favorites", "favourites", "favoritos"):
+            self.show_favorites()
+            return True
+
+        if command_lower in ("8", ":computer:", "computer", "places", "equipo"):
+            self.show_computer_items()
+            return True
+
+        if command_lower in ("3", ":aux:", "aux", "session", "session options"):
+            self.show_power_items()
+            return True
+
+        if command_lower in ("9", ":leave:", "leave", "salir"):
+            self.show_leave_items()
+            return True
+
+        if command_lower in ("power-menu", ":power-menu:", "shutdown-menu"):
+            self.show_power_items()
+            return True
+
+        if command_lower in ("10", ":bookmarks:", ":webbookmarks:", "web bookmarks", "bookmarks"):
+            self.show_web_bookmarks()
+            return True
+
+        if command_lower in (":allapps:", ":all_apps:", "allapps", "all apps", "all applications", "todas", "todas las aplicaciones"):
+            self.show_all_apps()
+            return True
+
+        return False
+
     def on_button_clicked(self, widget, event, button):
-        run_command(button.command)
+        command = (getattr(button, "command", "") or "").strip()
+        command_lower = command.lower()
+
+        # Botones legacy de carpetas/sistema.
+        if self.handle_legacy_button_action(command):
+            # Power/Aux abren un submenú interno, no deben cerrar la ventana.
+            if command_lower not in ("power", "aux", "3") and button.close_menu:
+                self.destroy()
+            return
+
+        # Botones legacy que no son comandos reales del sistema.
+        if self.handle_internal_menu_command(command):
+            return
+
+        # En temas como Gray, Command="Search" debe enfocar el buscador,
+        # no intentar ejecutar un binario llamado "Search".
+        if command_lower in ("search", ":search:", "find", "buscar"):
+            if self.search_entry:
+                self.search_entry.grab_focus()
+            return
+
+        if command_lower in ("", "none", "noop", ":none:"):
+            return
+
+        run_command(command)
 
         if button.close_menu:
             self.destroy()
 
     def on_button_hover(self, widget, event, button):
-        if button.command == ":ALLAPPS:":
-            print("XFCEMenu: hover :ALLAPPS: todavía pendiente.")
-        else:
-            self.on_button_clicked(widget, event, button)
+        command = (getattr(button, "command", "") or "").strip()
+
+        if self.handle_internal_menu_command(command):
+            return
+
+        self.on_button_clicked(widget, event, button)
 
     def on_focus_out(self, widget, event):
         self.destroy()

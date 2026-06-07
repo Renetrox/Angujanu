@@ -13,6 +13,7 @@ class LegacyButton:
     text_x: int = 0
     text_y: int = 0
     image: str = ""
+    image_back: str = ""
     button_icon: str = ""
     button_icon_sel: str = ""
     x: int = 0
@@ -22,6 +23,29 @@ class LegacyButton:
     close_menu: int = 1
     execute_on_hover: int = 0
     icon: str = ""
+
+
+@dataclass
+class LegacyTab:
+    name: str = ""
+    markup: str = ""
+    text_x: int = 0
+    text_y: int = 0
+    text_alignment: int = 0
+    invert_text_color_on_sel: int = 0
+    image: str = ""
+    image_sel: str = ""
+    tab_icon: str = ""
+    tab_icon_size: int = 32
+    tab_icon_x: int = 0
+    tab_icon_y: int = 0
+    x: int = 0
+    y: int = 0
+    submenu: int = 0
+    command: str = ""
+    close_menu: int = 0
+    icon: str = ""
+    add_back_button: int = 0
 
 
 @dataclass
@@ -77,6 +101,7 @@ class LegacyMenuTheme:
     version: str = ""
     copyright: str = ""
     theme_dir: str = ""
+    xml_path: str = ""
     width: int = 380
     height: int = 497
     background: str = ""
@@ -84,6 +109,7 @@ class LegacyMenuTheme:
     program_list: Optional[ProgramListSettings] = None
     search_bar: Optional[SearchBarSettings] = None
     buttons: List[LegacyButton] = field(default_factory=list)
+    tabs: List[LegacyTab] = field(default_factory=list)
     labels: List[LegacyLabel] = field(default_factory=list)
 
 
@@ -142,6 +168,10 @@ def _read_legacy_xml_text(xml_path: str) -> str:
     """
     Muchos temas viejos de GnoMenu usan líneas con # como comentario,
     pero eso no es XML válido. Las limpiamos antes de parsear.
+
+    También hay temas con una barra invertida suelta al final de una etiqueta:
+        <Capabilities .../>\
+    Eso también rompe ElementTree, así que lo limpiamos.
     """
     with open(xml_path, "r", encoding="utf-8", errors="replace") as f:
         raw = f.read()
@@ -160,6 +190,9 @@ def _read_legacy_xml_text(xml_path: str) -> str:
 
     # Limpieza suave para XMLs legacy con espacios raros antes de '='.
     text = re.sub(r"\s+=\s+", "=", text)
+
+    # Limpia barras invertidas sueltas después de etiquetas autocerradas.
+    text = re.sub(r"(/>)\\", r"\1", text)
 
     return text
 
@@ -216,6 +249,7 @@ def load_menu_theme(theme_dir: str) -> LegacyMenuTheme:
 
     menu = LegacyMenuTheme()
     menu.theme_dir = theme_dir
+    menu.xml_path = xml_path
 
     # En los XML de GnoMenu, ContentData suele estar directo dentro de <content>,
     # no dentro de <theme>.
@@ -281,6 +315,31 @@ def load_menu_theme(theme_dir: str) -> LegacyMenuTheme:
             background=_str_attr(search_settings, "Background", ""),
         )
 
+    for tab_node in _find_children(theme_node, "Tab"):
+        tab = LegacyTab(
+            name=_str_attr(tab_node, "Name", ""),
+            markup=_str_attr(tab_node, "Markup", ""),
+            text_x=_int_attr(tab_node, "TextX", 0),
+            text_y=_int_attr(tab_node, "TextY", 0),
+            text_alignment=_int_attr(tab_node, "TextAlignment", 0),
+            invert_text_color_on_sel=_int_attr(tab_node, "InvertTextColorOnSel", 0),
+            image=_str_attr(tab_node, "Image", ""),
+            image_sel=_str_attr(tab_node, "ImageSel", ""),
+            tab_icon=_str_attr(tab_node, "TabIcon", ""),
+            tab_icon_size=_int_attr(tab_node, "TabIconSize", 32),
+            tab_icon_x=_int_attr(tab_node, "TabIconX", 0),
+            tab_icon_y=_int_attr(tab_node, "TabIconY", 0),
+            x=_int_attr(tab_node, "TabX", 0),
+            y=_int_attr(tab_node, "TabY", 0),
+            submenu=_int_attr(tab_node, "SubMenu", 0),
+            command=_str_attr(tab_node, "Command", ""),
+            close_menu=_int_attr(tab_node, "CloseMenu", 0),
+            icon=_str_attr(tab_node, "Icon", ""),
+            add_back_button=_int_attr(tab_node, "AddBackButton", 0),
+        )
+
+        menu.tabs.append(tab)
+
     for button_node in _find_children(theme_node, "Button"):
         button = LegacyButton(
             name=_str_attr(button_node, "Name", ""),
@@ -288,6 +347,7 @@ def load_menu_theme(theme_dir: str) -> LegacyMenuTheme:
             text_x=_int_attr(button_node, "TextX", 0),
             text_y=_int_attr(button_node, "TextY", 0),
             image=_str_attr(button_node, "Image", ""),
+            image_back=_str_attr(button_node, "ImageBack", ""),
             button_icon=_str_attr(button_node, "ButtonIcon", ""),
             button_icon_sel=_str_attr(button_node, "ButtonIconSel", ""),
             x=_int_attr(button_node, "ButtonX", 0),
@@ -298,6 +358,14 @@ def load_menu_theme(theme_dir: str) -> LegacyMenuTheme:
             execute_on_hover=_int_attr(button_node, "ExecuteOnHover", 0),
             icon=_str_attr(button_node, "Icon", ""),
         )
+
+        # GnoMenu suele usar ImageBack como fondo normal e Image como hover/selección.
+        # Tu xfcemenu.py anterior usaba button.image como imagen de botón.
+        # Para no romper temas viejos:
+        # - Si hay ImageBack, lo dejamos disponible.
+        # - Si no hay Image pero sí ImageBack, usamos ImageBack como image.
+        if not button.image and button.image_back:
+            button.image = button.image_back
 
         menu.buttons.append(button)
 
@@ -328,6 +396,34 @@ def load_menu_theme(theme_dir: str) -> LegacyMenuTheme:
         )
     else:
         print("  IconSettings: no definido")
+
+    if menu.program_list:
+        print(
+            "  ProgramListSettings: "
+            f"{menu.program_list.x},{menu.program_list.y} "
+            f"{menu.program_list.width}x{menu.program_list.height}"
+        )
+    else:
+        print("  ProgramListSettings: no definido")
+
+    if menu.search_bar:
+        print(
+            "  SearchBarSettings: "
+            f"{menu.search_bar.x},{menu.search_bar.y} "
+            f"{menu.search_bar.width}x{menu.search_bar.height} "
+            f"widget={menu.search_bar.widget}"
+        )
+    else:
+        print("  SearchBarSettings: no definido")
+
+    print(f"  Tabs: {len(menu.tabs)}")
+    for tab in menu.tabs:
+        print(
+            "    Tab: "
+            f"{tab.name} command={tab.command} "
+            f"pos={tab.x},{tab.y} "
+            f"image={tab.image} sel={tab.image_sel} icon={tab.tab_icon}"
+        )
 
     print(f"  Botones: {len(menu.buttons)}")
     print(f"  Labels: {len(menu.labels)}")
