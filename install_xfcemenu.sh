@@ -176,7 +176,7 @@ echo "[5/7] Creando configuración..."
 if [ ! -f "$CONFIG_FILE" ]; then
 	cat > "$CONFIG_FILE" <<EOF
 [theme]
-menu_theme = Glow
+menu_theme = Vista
 icon_theme = Win7_Icons_1.1
 button_theme = Win2-7
 sound_theme = Win2-7
