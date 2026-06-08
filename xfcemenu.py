@@ -561,7 +561,7 @@ def tr_category(key, fallback):
 
 UI_LABELS = {
     "es": {
-        "home": "Carpeta personal",
+        "home": "Usuario",
         "desktop": "Escritorio",
         "documents": "Documentos",
         "downloads": "Descargas",
@@ -593,7 +593,7 @@ UI_LABELS = {
         "recent_pending": "Itens recentes pendente",
     },
     "en": {
-        "home": "Home Folder",
+        "home": "Home",
         "desktop": "Desktop",
         "documents": "Documents",
         "downloads": "Downloads",
