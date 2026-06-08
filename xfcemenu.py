@@ -6,6 +6,7 @@ import subprocess
 import re
 import html
 import configparser
+import json
 import shlex
 import shutil
 
@@ -24,6 +25,10 @@ THEMES_DIR = os.path.join(BASE_DIR, "themes")
 
 CONFIG_DIR = os.path.expanduser("~/.config/xfcemenu")
 CONFIG_FILE = os.path.join(CONFIG_DIR, "config.ini")
+
+CACHE_DIR = os.path.expanduser("~/.cache/xfcemenu")
+APPS_CACHE_FILE = os.path.join(CACHE_DIR, "apps.cache.json")
+APPS_CACHE_VERSION = 1
 
 THEME_KINDS = {
     "menu": "Menu",
@@ -882,7 +887,156 @@ def open_path(path):
         print(f"XFCEMenu: no se pudo abrir ruta '{path}': {e}")
 
 
-def load_desktop_apps():
+def get_desktop_app_dirs():
+    """
+    Carpetas de aplicaciones .desktop que XFCEMenu escanea.
+
+    Se mantiene en una función para que el cache y el escaneo real usen
+    exactamente la misma lista.
+    """
+    return [
+        "/usr/share/applications",
+        "/usr/local/share/applications",
+        os.path.expanduser("~/.local/share/applications"),
+    ]
+
+
+def build_apps_cache_signature(app_dirs=None):
+    """
+    Crea una firma liviana del estado de los .desktop.
+
+    No parsea los archivos; solo revisa nombres, tamaño y mtime. Así se puede
+    saber si el cache sigue siendo válido sin repetir todo el trabajo pesado.
+    """
+    if app_dirs is None:
+        app_dirs = get_desktop_app_dirs()
+
+    signature = {
+        "version": APPS_CACHE_VERSION,
+        "locale": get_locale_candidates_for_desktop(),
+        "dirs": [],
+    }
+
+    for app_dir in app_dirs:
+        dir_info = {
+            "path": app_dir,
+            "exists": os.path.isdir(app_dir),
+            "files": [],
+        }
+
+        if not os.path.isdir(app_dir):
+            signature["dirs"].append(dir_info)
+            continue
+
+        try:
+            filenames = sorted(
+                filename for filename in os.listdir(app_dir)
+                if filename.endswith(".desktop")
+            )
+        except Exception:
+            signature["dirs"].append(dir_info)
+            continue
+
+        for filename in filenames:
+            path = os.path.join(app_dir, filename)
+
+            try:
+                stat = os.stat(path)
+            except Exception:
+                continue
+
+            dir_info["files"].append({
+                "name": filename,
+                "mtime_ns": getattr(stat, "st_mtime_ns", int(stat.st_mtime * 1000000000)),
+                "size": stat.st_size,
+            })
+
+        signature["dirs"].append(dir_info)
+
+    return signature
+
+
+def desktop_app_to_cache_dict(app):
+    return {
+        "name": app.name,
+        "exec_cmd": app.exec_cmd,
+        "icon": app.icon,
+        "comment": app.comment,
+        "desktop_file": app.desktop_file,
+        "categories": app.categories,
+    }
+
+
+def desktop_app_from_cache_dict(data):
+    return DesktopApp(
+        name=data.get("name", ""),
+        exec_cmd=data.get("exec_cmd", ""),
+        icon=data.get("icon", ""),
+        comment=data.get("comment", ""),
+        desktop_file=data.get("desktop_file", ""),
+        categories=data.get("categories", ""),
+    )
+
+
+def load_apps_cache_if_valid(signature):
+    if not os.path.isfile(APPS_CACHE_FILE):
+        return None
+
+    try:
+        with open(APPS_CACHE_FILE, "r", encoding="utf-8") as f:
+            payload = json.load(f)
+    except Exception:
+        return None
+
+    if payload.get("version") != APPS_CACHE_VERSION:
+        return None
+
+    if payload.get("signature") != signature:
+        return None
+
+    apps_data = payload.get("apps", [])
+
+    if not isinstance(apps_data, list):
+        return None
+
+    apps = []
+
+    for item in apps_data:
+        if not isinstance(item, dict):
+            continue
+
+        app = desktop_app_from_cache_dict(item)
+
+        if app.name and app.exec_cmd:
+            apps.append(app)
+
+    apps.sort(key=lambda app: app.name.lower())
+    print(f"XFCEMenu: apps cargadas desde cache ({len(apps)})")
+    return apps
+
+
+def save_apps_cache(signature, apps):
+    try:
+        os.makedirs(CACHE_DIR, exist_ok=True)
+
+        payload = {
+            "version": APPS_CACHE_VERSION,
+            "signature": signature,
+            "apps": [desktop_app_to_cache_dict(app) for app in apps],
+        }
+
+        tmp_path = APPS_CACHE_FILE + ".tmp"
+
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False, indent=2)
+
+        os.replace(tmp_path, APPS_CACHE_FILE)
+        print(f"XFCEMenu: cache de apps actualizado ({len(apps)})")
+    except Exception as e:
+        print(f"XFCEMenu: no se pudo guardar cache de apps: {e}")
+
+
+def scan_desktop_apps():
     """
     Carga programas reales desde .desktop.
     Busca en sistema + usuario, filtra ocultos y evita duplicados.
@@ -890,11 +1044,7 @@ def load_desktop_apps():
     apps = []
     seen = set()
 
-    app_dirs = [
-        "/usr/share/applications",
-        "/usr/local/share/applications",
-        os.path.expanduser("~/.local/share/applications"),
-    ]
+    app_dirs = get_desktop_app_dirs()
 
     for app_dir in app_dirs:
         if not os.path.isdir(app_dir):
@@ -974,6 +1124,27 @@ def load_desktop_apps():
             ))
 
     apps.sort(key=lambda app: app.name.lower())
+    return apps
+
+
+def load_desktop_apps():
+    """
+    Carga programas usando cache si el estado de los .desktop no cambió.
+
+    Primera apertura:
+        escanea .desktop y guarda ~/.cache/xfcemenu/apps.cache.json
+
+    Siguientes aperturas:
+        valida firma ligera y carga directamente desde cache.
+    """
+    signature = build_apps_cache_signature()
+
+    cached_apps = load_apps_cache_if_valid(signature)
+    if cached_apps is not None:
+        return cached_apps
+
+    apps = scan_desktop_apps()
+    save_apps_cache(signature, apps)
     return apps
 
 
