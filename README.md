@@ -451,6 +451,14 @@ The code is new. The inspiration is old.
 * Possible native xfce4-panel plugin.
 * More complete GnoMenu compatibility.
 
+### Current panel behavior
+
+XFCEMenu is currently designed and tested primarily as a classic Start Menu opened from a launcher placed on the **left side of a bottom XFCE panel**, similar to the traditional Windows/GnoMenu layout.
+
+Other panel positions, such as top panels, right-side launchers or vertical panels, are not fully supported yet. In those cases the menu may still open, but the legacy skin layout is not vertically flipped or rearranged, so elements such as the user avatar remain in their original position.
+
+Better positioning support for additional panel layouts may be added later.
+
 ## License
 
 This project is intended to be released as free software.
