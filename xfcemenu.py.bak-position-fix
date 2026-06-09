@@ -1199,9 +1199,7 @@ class XFCEMenuWindow(Gtk.Window):
         self.set_skip_taskbar_hint(True)
         self.set_skip_pager_hint(True)
         self.set_app_paintable(True)
-        # XFCEMenu: no usar POPUP_MENU porque XFCE/GTK puede posicionarlo
-        # como menú contextual cerca del puntero.
-        # self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
+        self.set_type_hint(Gdk.WindowTypeHint.POPUP_MENU)
 
         self.set_size_request(theme.width, theme.height)
         self.set_default_size(theme.width, theme.height)
@@ -1243,7 +1241,7 @@ class XFCEMenuWindow(Gtk.Window):
         self.connect("key-press-event", self.on_key_press)
         self.connect("destroy", self.on_destroy)
 
-        self.position_near_bottom_left()
+        self.position_near_launcher()
 
         GLib.idle_add(self.present)
         GLib.idle_add(self.play_show_sound_once)
@@ -3687,54 +3685,8 @@ class XFCEMenuWindow(Gtk.Window):
         self.move(x, y)
 
     def position_near_bottom_left(self):
-        """
-        Posiciona XFCEMenu abajo a la izquierda del monitor principal.
-
-        Importante:
-        - No usa el puntero.
-        - No usa position_near_launcher().
-        - Esto evita que el menú aparezca donde está el mouse.
-        """
-        try:
-            display = Gdk.Display.get_default()
-            monitor = None
-
-            if display is not None:
-                try:
-                    monitor = display.get_primary_monitor()
-                except Exception:
-                    monitor = None
-
-                if monitor is None:
-                    try:
-                        monitor = display.get_monitor(0)
-                    except Exception:
-                        monitor = None
-
-            if monitor is not None:
-                geometry = monitor.get_geometry()
-                x = int(geometry.x)
-                y = int(geometry.y + geometry.height - self.theme.height - 32)
-            else:
-                raise RuntimeError("No monitor geometry")
-
-        except Exception:
-            try:
-                screen = self.get_screen()
-                monitor_index = screen.get_primary_monitor()
-                geometry = screen.get_monitor_geometry(monitor_index)
-
-                x = int(geometry.x)
-                y = int(geometry.y + geometry.height - self.theme.height - 32)
-            except Exception:
-                x = 0
-                y = 0
-
-        if y < 0:
-            y = 0
-
-        self.move(x, y)
-        return False
+        # Compatibilidad con versiones anteriores del código.
+        self.position_near_launcher()
 
 
 def find_menu_theme(theme_name):
