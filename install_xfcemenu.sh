@@ -138,6 +138,7 @@ echo ""
 
 echo "[4/7] Copiando archivos..."
 
+# Actualizar el programa sin borrar los temas añadidos manualmente.
 rsync -a \
 	--delete \
 	--exclude ".git" \
@@ -145,8 +146,21 @@ rsync -a \
 	--exclude "__pycache__" \
 	--exclude "*.pyc" \
 	--exclude "install_xfcemenu.sh" \
+	--exclude "themes/" \
 	"$SRC_DIR/" "$INSTALL_DIR/"
 
+# Actualizar temas oficiales sin eliminar temas adicionales del usuario.
+mkdir -p "$INSTALL_DIR/themes"
+
+rsync -a \
+	--exclude "__pycache__" \
+	--exclude "*.pyc" \
+	"$SRC_DIR/themes/" "$INSTALL_DIR/themes/"
+
+echo "  Programa actualizado"
+echo "  Temas oficiales actualizados"
+echo "  Temas instalados manualmente conservados"
+echo ""
 echo "  Instalado en:"
 echo "  $INSTALL_DIR"
 echo ""
@@ -223,12 +237,11 @@ BASE_DIR="$INSTALL_DIR"
 PIDFILE="/tmp/xfcemenu-\${USER}.pid"
 PYTHON_BIN="python3"
 
-# Si ya hay una instancia registrada, la cerramos.
 if [ -f "\$PIDFILE" ]; then
 	OLD_PID="\$(cat "\$PIDFILE" 2>/dev/null)"
 
 	if [ -n "\$OLD_PID" ] && kill -0 "\$OLD_PID" 2>/dev/null; then
-		kill "\$OLD_PID" 2>/dev/null
+		kill "\$OLD_PID" 2>/dev/null || true
 		rm -f "\$PIDFILE"
 		exit 0
 	fi

@@ -30,6 +30,8 @@ CACHE_DIR = os.path.expanduser("~/.cache/xfcemenu")
 APPS_CACHE_FILE = os.path.join(CACHE_DIR, "apps.cache.json")
 APPS_CACHE_VERSION = 1
 
+FAVORITES_FILE = os.path.join(CONFIG_DIR, "favorites.txt")
+
 # Corrección global para textos legacy dibujados sobre botones PNG.
 # Los temas de GnoMenu/GTK2 tienden a quedar un poco grandes y bajos en GTK3.
 # Esto se aplica desde el motor, no por tema, para mantener coherencia entre skins.
@@ -1167,7 +1169,25 @@ class XFCEMenuWindow(Gtk.Window):
         self.sound_theme = sound_theme or ""
         self.play_sounds = bool(play_sounds)
         self.close_on_focus_out = bool(close_on_focus_out)
-        self.show_avatar = bool(show_avatar)
+
+        # Capabilities legacy de GnoMenu.
+        # La preferencia del usuario sigue mandando, pero el tema puede indicar
+        # que no dispone de avatar o búsqueda.
+        capabilities = getattr(self.theme, "capabilities", None)
+        self.theme_has_icon = bool(
+            getattr(capabilities, "has_icon", 1)
+            if capabilities is not None else 1
+        )
+        self.theme_has_search = bool(
+            getattr(capabilities, "has_search", 1)
+            if capabilities is not None else 1
+        )
+        self.theme_has_fade_transition = bool(
+            getattr(capabilities, "has_fade_transition", 0)
+            if capabilities is not None else 0
+        )
+
+        self.show_avatar = bool(show_avatar) and self.theme_has_icon
         self.icon_size = max(12, int(icon_size or 24))
         self.sound = SoundManager(self.sound_theme, enabled=self.play_sounds)
         self.close_requested = False
@@ -1192,6 +1212,9 @@ class XFCEMenuWindow(Gtk.Window):
         self.avatar_frame_widget = None
         self.avatar_normal_pixbuf = None
         self.avatar_hover_timer = None
+        self.avatar_click_area = None
+        self.app_context_menu = None
+        self.context_menu_focus_guard = False
 
         self.set_decorated(False)
         self.set_resizable(False)
@@ -1880,7 +1903,16 @@ class XFCEMenuWindow(Gtk.Window):
         self.program_listbox.set_name("xfcemenu-program-list")
         self.program_listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
         self.program_listbox.set_activate_on_single_click(True)
+        self.program_listbox.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.program_listbox.connect("row-activated", self.on_program_row_activated)
+        self.program_listbox.connect(
+            "button-press-event",
+            self.on_program_list_button_press,
+        )
+        self.program_listbox.connect(
+            "popup-menu",
+            self.on_program_list_popup_menu,
+        )
 
         viewport = Gtk.Viewport()
         viewport.set_shadow_type(Gtk.ShadowType.NONE)
@@ -1889,9 +1921,35 @@ class XFCEMenuWindow(Gtk.Window):
         self.program_scrolled.add(viewport)
         self.fixed.put(self.program_scrolled, x, y)
 
+        self.show_initial_program_view()
+
+    def show_initial_program_view(self):
+        """
+        Respeta ProgramListSettings de los temas legacy:
+
+        OnlyShowFavs="1"       -> abre mostrando favoritos.
+        OnlyShowRecentApps="1" -> abre mostrando aplicaciones recientes.
+        Sin flags              -> abre mostrando categorías.
+        """
+        settings = getattr(self.theme, "program_list", None)
+
+        if settings is not None:
+            if int(getattr(settings, "only_favs", 0) or 0) == 1:
+                self.show_favorites()
+                return
+
+            if int(getattr(settings, "only_recent", 0) or 0) == 1:
+                self.show_recent_apps()
+                return
+
         self.show_categories()
 
     def draw_search_widget(self):
+        # Algunos temas declaran un área de búsqueda con tamaño cero y además
+        # Capabilities HasSearch="0". En ambos casos no se crea el Gtk.Entry.
+        if not getattr(self, "theme_has_search", True):
+            return
+
         area = self.get_search_area()
 
         if not area:
@@ -2017,7 +2075,10 @@ class XFCEMenuWindow(Gtk.Window):
         row.menu_item = item
         row.set_activatable(True)
         row.set_selectable(True)
-        row.add_events(Gdk.EventMask.ENTER_NOTIFY_MASK)
+        row.add_events(
+            Gdk.EventMask.ENTER_NOTIFY_MASK |
+            Gdk.EventMask.BUTTON_PRESS_MASK
+        )
         row.connect("enter-notify-event", self.on_program_row_enter)
         row.connect("button-press-event", self.on_program_row_button_press)
 
@@ -2082,11 +2143,222 @@ class XFCEMenuWindow(Gtk.Window):
 
         return False
 
+    def on_program_list_button_press(self, listbox, event):
+        """
+        Captura el clic derecho desde la lista completa.
+
+        En algunos temas GTK los widgets hijos de Gtk.ListBoxRow consumen el
+        evento antes de que llegue a la fila. Consultar la fila por coordenada
+        desde la propia Gtk.ListBox es más fiable.
+        """
+        if event.button != 3:
+            return False
+
+        row = listbox.get_row_at_y(int(event.y))
+
+        if not row:
+            return False
+
+        listbox.select_row(row)
+
+        if getattr(row, "item_type", "") != "app":
+            return False
+
+        app = getattr(row, "app", None)
+
+        if not app:
+            return False
+
+        self.show_app_context_menu(app, event)
+        return True
+
+    def on_program_list_popup_menu(self, listbox):
+        """
+        Abre el menú contextual con la tecla Menú o Shift+F10.
+        """
+        row = listbox.get_selected_row()
+
+        if not row or getattr(row, "item_type", "") != "app":
+            return False
+
+        app = getattr(row, "app", None)
+
+        if not app:
+            return False
+
+        self.show_app_context_menu(app, None)
+        return True
+
     def on_program_row_button_press(self, row, event):
-        if event.button == 1 and self.program_listbox and row.get_selectable():
+        if self.program_listbox and row.get_selectable():
             self.program_listbox.select_row(row)
 
+        # Clic derecho sobre una aplicación: agregar/quitar favorito.
+        if event.button == 3 and getattr(row, "item_type", "") == "app":
+            app = getattr(row, "app", None)
+
+            if app:
+                self.show_app_context_menu(app, event)
+                return True
+
         return False
+
+    def favorite_id_for_app(self, app):
+        """
+        Usa el nombre del archivo .desktop como identificador estable.
+        Si no existe, cae a nombre + comando.
+        """
+        desktop_file = (getattr(app, "desktop_file", "") or "").strip()
+
+        if desktop_file:
+            return os.path.basename(desktop_file)
+
+        name = (getattr(app, "name", "") or "").strip()
+        command = (getattr(app, "exec_cmd", "") or "").strip()
+        return f"{name}|{command}"
+
+    def load_favorite_ids(self):
+        if not os.path.isfile(FAVORITES_FILE):
+            return []
+
+        favorites = []
+
+        try:
+            with open(FAVORITES_FILE, "r", encoding="utf-8", errors="replace") as handle:
+                for line in handle:
+                    value = line.strip()
+
+                    if value and not value.startswith("#"):
+                        favorites.append(value)
+        except Exception as error:
+            print(f"XFCEMenu: no se pudieron leer favoritos: {error}")
+
+        return favorites
+
+    def save_favorite_ids(self, favorites):
+        os.makedirs(CONFIG_DIR, exist_ok=True)
+
+        clean = []
+        seen = set()
+
+        for value in favorites:
+            value = (value or "").strip()
+
+            if value and value not in seen:
+                seen.add(value)
+                clean.append(value)
+
+        try:
+            tmp_path = FAVORITES_FILE + ".tmp"
+
+            with open(tmp_path, "w", encoding="utf-8") as handle:
+                for value in clean:
+                    handle.write(value + "\n")
+
+            os.replace(tmp_path, FAVORITES_FILE)
+            return True
+        except Exception as error:
+            print(f"XFCEMenu: no se pudieron guardar favoritos: {error}")
+            return False
+
+    def is_favorite_app(self, app):
+        favorite_id = self.favorite_id_for_app(app).lower()
+        return favorite_id in {item.lower() for item in self.load_favorite_ids()}
+
+    def toggle_favorite_app(self, app):
+        favorite_id = self.favorite_id_for_app(app)
+        favorites = self.load_favorite_ids()
+
+        matching_index = None
+
+        for index, value in enumerate(favorites):
+            if value.lower() == favorite_id.lower():
+                matching_index = index
+                break
+
+        if matching_index is None:
+            favorites.append(favorite_id)
+            added = True
+        else:
+            favorites.pop(matching_index)
+            added = False
+
+        if self.save_favorite_ids(favorites):
+            print(
+                f"XFCEMenu: {'favorito agregado' if added else 'favorito eliminado'}: "
+                f"{getattr(app, 'name', favorite_id)}"
+            )
+
+            if self.current_view == "favorites":
+                self.show_favorites()
+
+        return added
+
+    def show_app_context_menu(self, app, event):
+        # Guardar una referencia evita que PyGObject destruya el menú
+        # contextual antes de que GTK llegue a mostrarlo.
+        menu = Gtk.Menu()
+        self.app_context_menu = menu
+        is_favorite = self.is_favorite_app(app)
+
+        if is_favorite:
+            label = {
+                "es": "Quitar de favoritos",
+                "pt": "Remover dos favoritos",
+                "en": "Remove from favorites",
+            }.get(detect_language(), "Quitar de favoritos")
+        else:
+            label = {
+                "es": "Agregar a favoritos",
+                "pt": "Adicionar aos favoritos",
+                "en": "Add to favorites",
+            }.get(detect_language(), "Agregar a favoritos")
+
+        favorite_item = Gtk.MenuItem(label=label)
+        favorite_item.connect(
+            "activate",
+            lambda _item: self.toggle_favorite_app(app)
+        )
+        menu.append(favorite_item)
+
+        launch_item = Gtk.MenuItem(
+            label={
+                "es": "Abrir",
+                "pt": "Abrir",
+                "en": "Open",
+            }.get(detect_language(), "Abrir")
+        )
+        launch_item.connect("activate", lambda _item: self.launch_app(app))
+        menu.append(launch_item)
+
+        menu.connect(
+            "deactivate",
+            self.on_app_context_menu_deactivate,
+        )
+        menu.show_all()
+
+        try:
+            if event is not None:
+                menu.popup_at_pointer(event)
+            else:
+                menu.popup_at_widget(
+                    self.program_listbox,
+                    Gdk.Gravity.SOUTH_WEST,
+                    Gdk.Gravity.NORTH_WEST,
+                    None,
+                )
+        except Exception:
+            button = int(getattr(event, "button", 0) or 0)
+            event_time = int(getattr(event, "time", Gtk.get_current_event_time()) or 0)
+
+            menu.popup(
+                None,
+                None,
+                None,
+                None,
+                button,
+                event_time,
+            )
 
     def on_program_row_activated(self, listbox, row):
         self.play_event_sound("button")
@@ -2105,7 +2377,7 @@ class XFCEMenuWindow(Gtk.Window):
         if item_type == "back":
             if self.search_entry:
                 self.search_entry.set_text("")
-            self.show_categories()
+            self.show_initial_program_view()
             return
 
         if item_type == "place":
@@ -2155,7 +2427,7 @@ class XFCEMenuWindow(Gtk.Window):
         if query:
             self.show_search_results(query)
         else:
-            self.show_categories()
+            self.show_initial_program_view()
 
     def on_search_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:
@@ -2435,6 +2707,51 @@ class XFCEMenuWindow(Gtk.Window):
         if frame_overlay:
             self.avatar_frame_widget = Gtk.Image.new_from_pixbuf(frame_overlay)
             self.fixed.put(self.avatar_frame_widget, int(settings.x), int(settings.y))
+
+        # Zona transparente encima del avatar y su marco.
+        # Un clic abre Mugshot cuando está instalado.
+        click_area = Gtk.EventBox()
+        click_area.set_visible_window(False)
+        click_area.set_size_request(int(settings.width), int(settings.height))
+        click_area.add_events(
+            Gdk.EventMask.BUTTON_PRESS_MASK |
+            Gdk.EventMask.ENTER_NOTIFY_MASK
+        )
+        click_area.set_tooltip_text(
+            {
+                "es": "Cambiar imagen de perfil",
+                "pt": "Alterar imagem do perfil",
+                "en": "Change profile picture",
+            }.get(detect_language(), "Cambiar imagen de perfil")
+        )
+        click_area.connect("button-press-event", self.on_avatar_button_press)
+
+        self.avatar_click_area = click_area
+        self.fixed.put(click_area, int(settings.x), int(settings.y))
+        click_area.show()
+
+    def on_avatar_button_press(self, widget, event):
+        if event.button != 1:
+            return False
+
+        if shutil.which("mugshot"):
+            try:
+                subprocess.Popen(
+                    ["mugshot"],
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL,
+                )
+                self.close_menu()
+                return True
+            except Exception as error:
+                print(f"XFCEMenu: no se pudo abrir Mugshot: {error}")
+                return True
+
+        print(
+            "XFCEMenu: Mugshot no está instalado. "
+            "Instala con: sudo apt install mugshot"
+        )
+        return True
 
     def cancel_avatar_hover_timer(self):
         if self.avatar_hover_timer:
@@ -2761,96 +3078,37 @@ class XFCEMenuWindow(Gtk.Window):
 
     def load_favorite_desktop_ids(self):
         """
-        Lee favoritos simples desde:
+        Compatibilidad con el nombre anterior del método.
+        Los favoritos se guardan en:
             ~/.config/xfcemenu/favorites.txt
-
-        Formatos aceptados por línea:
-            firefox.desktop
-            /usr/share/applications/firefox.desktop
-            Firefox
         """
-        fav_path = os.path.expanduser("~/.config/xfcemenu/favorites.txt")
-
-        if not os.path.isfile(fav_path):
-            return []
-
-        result = []
-
-        try:
-            with open(fav_path, "r", encoding="utf-8", errors="replace") as f:
-                for line in f:
-                    line = line.strip()
-
-                    if not line or line.startswith("#"):
-                        continue
-
-                    result.append(line.lower())
-        except Exception:
-            return []
-
-        return result
+        return [item.lower() for item in self.load_favorite_ids()]
 
     def show_favorites(self):
         self.current_view = "favorites"
         self.current_category = None
 
-        configured = self.load_favorite_desktop_ids()
+        configured = {
+            item.lower()
+            for item in self.load_favorite_ids()
+        }
+
         favorites = []
 
-        if configured:
-            for app in self.apps:
-                name = (app.name or "").lower()
-                cmd = (app.exec_cmd or "").lower()
-                desktop_path = (app.desktop_file or "").lower()
-                desktop_base = os.path.basename(desktop_path)
+        for app in self.apps:
+            favorite_id = self.favorite_id_for_app(app).lower()
 
-                if any(
-                    fav == desktop_base
-                    or fav == desktop_path
-                    or fav in name
-                    or fav in cmd
-                    for fav in configured
-                ):
-                    favorites.append(app)
+            if favorite_id in configured:
+                favorites.append(app)
 
-        if not favorites:
-            favorite_terms = {
-                "firefox",
-                "chromium",
-                "chrome",
-                "thunar",
-                "terminal",
-                "xfce4-terminal",
-                "settings",
-                "configuración",
-                "configuracion",
-                "geany",
-                "libreoffice",
-            }
-
-            for app in self.apps:
-                name = (app.name or "").lower()
-                cmd = (app.exec_cmd or "").lower()
-
-                if any(term in name or term in cmd for term in favorite_terms):
-                    favorites.append(app)
-
-        # Evitar duplicados conservando orden.
-        unique = []
-        seen = set()
-
-        for app in favorites:
-            key = ((app.name or "").lower(), (app.exec_cmd or "").lower())
-
-            if key not in seen:
-                seen.add(key)
-                unique.append(app)
-
-        favorites = unique
+        favorites.sort(key=lambda app: (app.name or "").lower())
 
         if not favorites:
             self.clear_program_listbox()
-            self.add_message_row(tr_ui("no_favorites", "Sin favoritos"))
+            self.add_message_row(
+                tr_ui("no_favorites", "Sin favoritos") +
+                " — clic derecho sobre una aplicación para agregarla"
+            )
             self.select_first_row()
             self.reset_program_scroll()
             return
@@ -3396,16 +3654,19 @@ class XFCEMenuWindow(Gtk.Window):
             run_command("xfce4-settings-manager")
             return True
 
-        if command_lower == "package manager":
-            # MX Linux suele tener mx-packageinstaller; si no, intentamos Synaptic/Pamac.
-            if shutil.which("mx-packageinstaller"):
-                run_command("mx-packageinstaller")
-            elif shutil.which("synaptic"):
-                run_command("synaptic")
-            elif shutil.which("pamac-manager"):
-                run_command("pamac-manager")
-            else:
-                run_command("xfce4-settings-manager")
+        if command_lower in (
+            "package manager",
+            "software center",
+            "software-center",
+            "software manager",
+            "gestor de paquetes",
+            "centro de software",
+        ):
+            run_command("software-center")
+            return True
+
+        if command_lower in ("printer", "printers"):
+            run_command("Printer")
             return True
 
         if command_lower == "help":
@@ -3513,6 +3774,19 @@ class XFCEMenuWindow(Gtk.Window):
         command = (getattr(button, "command", "") or "").strip()
         command_lower = command.lower()
 
+        # :ALLAPPS: es navegación interna y nunca debe enviarse al sistema.
+        if command_lower in (
+            ":allapps:",
+            ":all_apps:",
+            "allapps",
+            "all apps",
+            "all applications",
+            "todas",
+            "todas las aplicaciones",
+        ):
+            self.show_all_apps()
+            return
+
         # Botones legacy de carpetas/sistema.
         if self.handle_legacy_button_action(command):
             # Power/Aux abren un submenú interno, no deben cerrar la ventana.
@@ -3541,15 +3815,67 @@ class XFCEMenuWindow(Gtk.Window):
 
     def on_button_hover(self, widget, event, button):
         command = (getattr(button, "command", "") or "").strip()
+        command_lower = command.lower()
+
+        if command_lower in (
+            ":allapps:",
+            ":all_apps:",
+            "allapps",
+            "all apps",
+            "all applications",
+            "todas",
+            "todas las aplicaciones",
+        ):
+            if self.current_view != "all_apps":
+                self.show_all_apps()
+            return
 
         if self.handle_internal_menu_command(command):
             return
 
         self.on_button_clicked(widget, event, button)
 
+    def on_app_context_menu_deactivate(self, menu):
+        # Gtk.Menu emite "deactivate" antes de terminar de procesar el clic
+        # sobre el elemento elegido. Conservamos una protección breve para que
+        # el focus-out de ese mismo clic no cierre la ventana principal.
+        self.context_menu_focus_guard = True
+
+        GLib.timeout_add(250, self.finish_context_menu_close)
+
+    def finish_context_menu_close(self):
+        self.app_context_menu = None
+
+        if not self.close_requested:
+            try:
+                self.present()
+                self.grab_focus()
+
+                if self.program_listbox:
+                    self.program_listbox.grab_focus()
+            except Exception:
+                pass
+
+        GLib.timeout_add(250, self.clear_context_menu_focus_guard)
+        return False
+
+    def clear_context_menu_focus_guard(self):
+        self.context_menu_focus_guard = False
+        return False
+
     def on_focus_out(self, widget, event):
+        # Gtk.Menu usa una ventana temporal. También ignoramos el breve
+        # focus-out que ocurre al pulsar una opción del menú contextual.
+        if getattr(self, "app_context_menu", None) is not None:
+            return False
+
+        if getattr(self, "context_menu_focus_guard", False):
+            return False
+
         if self.close_on_focus_out:
             self.close_menu()
+
+        return False
 
     def on_key_press(self, widget, event):
         if event.keyval == Gdk.KEY_Escape:

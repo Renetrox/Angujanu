@@ -82,11 +82,19 @@ get_ini_value() {
 	local key="$2"
 
 	awk -F '=' -v section="[$section]" -v key="$key" '
-		$0 == section { found=1; next }
-		/^\[/ { found=0 }
+		$0 == section {
+			found=1
+			next
+		}
+
+		/^\[/ {
+			found=0
+		}
+
 		found {
 			k=$1
 			v=$2
+
 			gsub(/^[ \t]+|[ \t]+$/, "", k)
 			gsub(/^[ \t]+|[ \t]+$/, "", v)
 
@@ -123,21 +131,33 @@ set_ini_value() {
 
 	# Si existe la sección y existe la clave, reemplazarla.
 	if awk -F '=' -v section="[$section]" -v key="$key" '
-		$0 == section { found=1; next }
-		/^\[/ { found=0 }
+		$0 == section {
+			found=1
+			next
+		}
+
+		/^\[/ {
+			found=0
+		}
+
 		found {
 			k=$1
 			gsub(/^[ \t]+|[ \t]+$/, "", k)
+
 			if (k == key) {
 				foundkey=1
 			}
 		}
+
 		END {
 			exit foundkey ? 0 : 1
 		}
 	' "$CONFIG_FILE"; then
 
-		awk -F '=' -v section="[$section]" -v key="$key" -v value="$value" '
+		awk -F '=' \
+			-v section="[$section]" \
+			-v key="$key" \
+			-v value="$value" '
 			$0 == section {
 				found=1
 				print
@@ -160,14 +180,16 @@ set_ini_value() {
 				}
 			}
 
-			{ print }
+			{
+				print
+			}
 		' "$CONFIG_FILE" > "$tmp_file"
 
 		mv "$tmp_file" "$CONFIG_FILE"
 		return
 	fi
 
-	# Si existe la sección pero no la clave, agregarla dentro de la sección.
+	# Si existe la sección pero no la clave, agregarla dentro.
 	awk -v section="[$section]" -v key="$key" -v value="$value" '
 		$0 == section {
 			found=1
@@ -184,7 +206,9 @@ set_ini_value() {
 			next
 		}
 
-		{ print }
+		{
+			print
+		}
 
 		END {
 			if (found && !inserted) {
@@ -196,8 +220,139 @@ set_ini_value() {
 	mv "$tmp_file" "$CONFIG_FILE"
 }
 
+update_paths_in_config() {
+	set_ini_value paths install_dir "$INSTALL_DIR"
+	set_ini_value paths base_themes_dir "$BASE_THEMES_DIR"
+	set_ini_value paths menu_themes_dir "$MENU_THEMES_DIR"
+	set_ini_value paths button_themes_dir "$BUTTON_THEMES_DIR"
+	set_ini_value paths sound_themes_dir "$SOUND_THEMES_DIR"
+	set_ini_value paths icon_themes_dir "$ICON_THEMES_DIR"
+}
+
 pause_msg() {
-	dialog --title "$1" --msgbox "$2" 12 72
+	dialog \
+		--title "$1" \
+		--msgbox "$2" \
+		12 72
+}
+
+# ------------------------------------------------------------
+# Vista previa de temas
+# ------------------------------------------------------------
+
+find_theme_preview() {
+	local theme_dir="$1"
+	local candidate
+
+	# Nombres conocidos, priorizando el formato usado por GnoMenu.
+	for candidate in \
+		"themepreview.png" \
+		"themepreview.jpg" \
+		"themepreview.jpeg" \
+		"theme-preview.png" \
+		"theme-preview.jpg" \
+		"preview.png" \
+		"preview.jpg" \
+		"preview.jpeg" \
+		"screenshot.png" \
+		"screenshot.jpg" \
+		"screenshot.jpeg"
+	do
+		if [ -f "$theme_dir/$candidate" ]; then
+			printf '%s\n' "$theme_dir/$candidate"
+			return 0
+		fi
+	done
+
+	# Búsqueda sin distinguir mayúsculas y minúsculas.
+	candidate="$(
+		find "$theme_dir" \
+			-maxdepth 1 \
+			-type f \
+			\( \
+				-iname "themepreview.png" -o \
+				-iname "themepreview.jpg" -o \
+				-iname "themepreview.jpeg" -o \
+				-iname "theme-preview.png" -o \
+				-iname "theme-preview.jpg" -o \
+				-iname "preview.png" -o \
+				-iname "preview.jpg" -o \
+				-iname "preview.jpeg" -o \
+				-iname "screenshot.png" -o \
+				-iname "screenshot.jpg" -o \
+				-iname "screenshot.jpeg" \
+			\) \
+			-print \
+			-quit 2>/dev/null
+	)"
+
+	if [ -n "$candidate" ]; then
+		printf '%s\n' "$candidate"
+		return 0
+	fi
+
+	return 1
+}
+
+show_theme_preview() {
+	local theme_name="$1"
+	local theme_dir="$MENU_THEMES_DIR/$theme_name"
+	local preview_file
+
+	preview_file="$(find_theme_preview "$theme_dir")"
+
+	if [ -z "$preview_file" ] || [ ! -f "$preview_file" ]; then
+		pause_msg \
+			"Vista previa" \
+			"No se encontró una vista previa para:\n\n$theme_name\n\nRuta revisada:\n$theme_dir"
+		return 1
+	fi
+
+	clear
+
+	if command -v ristretto >/dev/null 2>&1; then
+		ristretto "$preview_file"
+		return 0
+	fi
+
+	if command -v viewnior >/dev/null 2>&1; then
+		viewnior "$preview_file"
+		return 0
+	fi
+
+	if command -v feh >/dev/null 2>&1; then
+		feh \
+			--scale-down \
+			--auto-zoom \
+			--image-bg black \
+			"$preview_file"
+		return 0
+	fi
+
+	if command -v pix >/dev/null 2>&1; then
+		pix "$preview_file"
+		return 0
+	fi
+
+	if command -v eog >/dev/null 2>&1; then
+		eog "$preview_file"
+		return 0
+	fi
+
+	if command -v xdg-open >/dev/null 2>&1; then
+		xdg-open "$preview_file" >/dev/null 2>&1 &
+
+		pause_msg \
+			"Vista previa abierta" \
+			"La vista previa fue abierta con el visor predeterminado.\n\nTema:\n$theme_name\n\nCierra el visor cuando termines de verla."
+		return 0
+	fi
+
+	pause_msg \
+		"Visor no disponible" \
+		"Se encontró la vista previa:\n\n$preview_file\n\nPero no hay un visor compatible instalado.\n\nPuedes instalar Ristretto con:\n\nsudo apt install ristretto"
+
+	return 1
 }
 
 # ------------------------------------------------------------
@@ -220,9 +375,10 @@ select_theme_from_dir() {
 
 	local options=()
 	local count=0
+	local theme_path
+	local theme_name
 
 	while IFS= read -r theme_path; do
-		local theme_name
 		theme_name="$(basename "$theme_path")"
 
 		case "$theme_name" in
@@ -238,7 +394,14 @@ select_theme_from_dir() {
 		fi
 
 		count=$((count + 1))
-	done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d | sort)
+	done < <(
+		find "$dir" \
+			-mindepth 1 \
+			-maxdepth 1 \
+			-type d \
+			-print |
+		sort
+	)
 
 	if [ "$count" -eq 0 ]; then
 		pause_msg "Sin opciones" "No se encontraron opciones en:\n\n$dir"
@@ -246,49 +409,190 @@ select_theme_from_dir() {
 	fi
 
 	local selected
-	selected=$(dialog \
-		--clear \
-		--title "$title" \
-		--menu "Actual: $current_value\nCarpeta: $dir" \
-		22 78 14 \
-		"${options[@]}" \
-		3>&1 1>&2 2>&3)
+	selected="$(
+		dialog \
+			--clear \
+			--title "$title" \
+			--menu "Actual: $current_value\nCarpeta: $dir" \
+			22 78 14 \
+			"${options[@]}" \
+			3>&1 1>&2 2>&3
+	)"
 
 	local status=$?
 
 	if [ "$status" -eq 0 ] && [ -n "$selected" ]; then
 		set_ini_value "$section" "$key" "$selected"
+		update_paths_in_config
 
-		# Actualizar rutas útiles.
-		set_ini_value paths install_dir "$INSTALL_DIR"
-		set_ini_value paths base_themes_dir "$BASE_THEMES_DIR"
-		set_ini_value paths menu_themes_dir "$MENU_THEMES_DIR"
-		set_ini_value paths button_themes_dir "$BUTTON_THEMES_DIR"
-		set_ini_value paths sound_themes_dir "$SOUND_THEMES_DIR"
-		set_ini_value paths icon_themes_dir "$ICON_THEMES_DIR"
-
-		pause_msg "Cambiado" "Nueva opción seleccionada:\n\n$selected"
+		pause_msg \
+			"Cambiado" \
+			"Nueva opción seleccionada:\n\n$selected"
 	fi
+}
+
+# ------------------------------------------------------------
+# Selector de temas de menú con vista previa
+# ------------------------------------------------------------
+
+select_menu_theme() {
+	if [ ! -d "$MENU_THEMES_DIR" ]; then
+		pause_msg \
+			"Error" \
+			"No se encontró la carpeta:\n\n$MENU_THEMES_DIR"
+		return
+	fi
+
+	while true; do
+		local current_value
+		current_value="$(get_ini_value theme menu_theme)"
+
+		local options=()
+		local count=0
+		local theme_path
+		local theme_name
+		local status_text
+		local preview_file
+
+		while IFS= read -r theme_path; do
+			theme_name="$(basename "$theme_path")"
+
+			case "$theme_name" in
+				__pycache__|.git|Menu|Button|Sound|Icon|Icons)
+					continue
+					;;
+			esac
+
+			if preview_file="$(find_theme_preview "$theme_path")"; then
+				status_text="vista disponible"
+			else
+				status_text="sin vista"
+			fi
+
+			if [ "$theme_name" = "$current_value" ]; then
+				status_text="actual · $status_text"
+			fi
+
+			options+=("$theme_name" "$status_text")
+			count=$((count + 1))
+		done < <(
+			find "$MENU_THEMES_DIR" \
+				-mindepth 1 \
+				-maxdepth 1 \
+				-type d \
+				-print |
+			sort
+		)
+
+		if [ "$count" -eq 0 ]; then
+			pause_msg \
+				"Sin temas" \
+				"No se encontraron temas de menú en:\n\n$MENU_THEMES_DIR"
+			return
+		fi
+
+		local selected
+		selected="$(
+			dialog \
+				--clear \
+				--title "Seleccionar tema de menú" \
+				--menu "Tema actual: $current_value\n\nSelecciona un tema para ver sus opciones." \
+				22 82 14 \
+				"${options[@]}" \
+				3>&1 1>&2 2>&3
+		)"
+
+		local status=$?
+
+		if [ "$status" -eq "$DIALOG_CANCEL" ] ||
+		   [ "$status" -eq "$DIALOG_ESC" ] ||
+		   [ -z "$selected" ]; then
+			return
+		fi
+
+		while true; do
+			local preview_path
+			local preview_status
+
+			preview_path="$(find_theme_preview "$MENU_THEMES_DIR/$selected")"
+
+			if [ -n "$preview_path" ]; then
+				preview_status="Vista previa disponible"
+			else
+				preview_status="Este tema no tiene vista previa reconocida"
+			fi
+
+			local action
+			action="$(
+				dialog \
+					--clear \
+					--title "$selected" \
+					--menu "$preview_status\n\n¿Qué quieres hacer?" \
+					16 72 6 \
+					"1" "Ver vista previa" \
+					"2" "Aplicar este tema" \
+					"3" "Elegir otro tema" \
+					"0" "Volver al menú principal" \
+					3>&1 1>&2 2>&3
+			)"
+
+			local action_status=$?
+
+			if [ "$action_status" -eq "$DIALOG_CANCEL" ] ||
+			   [ "$action_status" -eq "$DIALOG_ESC" ]; then
+				break
+			fi
+
+			case "$action" in
+				1)
+					show_theme_preview "$selected"
+					;;
+
+				2)
+	set_ini_value theme menu_theme "$selected"
+	update_paths_in_config
+	clear
+	return
+	;;
+
+				3)
+					break
+					;;
+
+				0)
+					return
+					;;
+			esac
+		done
+	done
 }
 
 # ------------------------------------------------------------
 # Selectores específicos
 # ------------------------------------------------------------
 
-select_menu_theme() {
-	select_theme_from_dir "Seleccionar tema de menú" "theme" "menu_theme" "$MENU_THEMES_DIR"
-}
-
 select_button_theme() {
-	select_theme_from_dir "Seleccionar tema de botón" "theme" "button_theme" "$BUTTON_THEMES_DIR"
+	select_theme_from_dir \
+		"Seleccionar tema de botón" \
+		"theme" \
+		"button_theme" \
+		"$BUTTON_THEMES_DIR"
 }
 
 select_sound_theme() {
-	select_theme_from_dir "Seleccionar tema de sonido" "theme" "sound_theme" "$SOUND_THEMES_DIR"
+	select_theme_from_dir \
+		"Seleccionar tema de sonido" \
+		"theme" \
+		"sound_theme" \
+		"$SOUND_THEMES_DIR"
 }
 
 select_icon_theme() {
-	select_theme_from_dir "Seleccionar tema de iconos" "theme" "icon_theme" "$ICON_THEMES_DIR"
+	select_theme_from_dir \
+		"Seleccionar tema de iconos" \
+		"theme" \
+		"icon_theme" \
+		"$ICON_THEMES_DIR"
 }
 
 # ------------------------------------------------------------
@@ -300,7 +604,8 @@ toggle_sounds() {
 	current="$(get_ini_value behavior play_sounds)"
 
 	if [ "$current" = "true" ]; then
-		dialog --title "Sonidos" \
+		dialog \
+			--title "Sonidos" \
 			--yesno "Los sonidos están ACTIVADOS.\n\n¿Quieres desactivarlos?" \
 			10 60
 
@@ -309,7 +614,8 @@ toggle_sounds() {
 			pause_msg "Sonidos" "Sonidos desactivados."
 		fi
 	else
-		dialog --title "Sonidos" \
+		dialog \
+			--title "Sonidos" \
 			--yesno "Los sonidos están DESACTIVADOS.\n\n¿Quieres activarlos?" \
 			10 60
 
@@ -389,7 +695,9 @@ edit_config() {
 	elif command -v geany >/dev/null 2>&1; then
 		editor_cmd="geany"
 	else
-		pause_msg "Editor" "No encontré nano, mousepad, xed ni geany.\n\nPuedes editar manualmente:\n\n$CONFIG_FILE"
+		pause_msg \
+			"Editor" \
+			"No encontré nano, mousepad, xed ni geany.\n\nPuedes editar manualmente:\n\n$CONFIG_FILE"
 		return
 	fi
 
@@ -402,13 +710,16 @@ edit_config() {
 # ------------------------------------------------------------
 
 reset_config() {
-	dialog --title "Restaurar configuración" \
+	dialog \
+		--title "Restaurar configuración" \
 		--yesno "Esto reemplazará tu config.ini actual por una configuración básica.\n\n¿Continuar?" \
 		10 70
 
 	if [ "$?" -eq 0 ]; then
 		create_default_config
-		pause_msg "Restaurado" "Se restauró la configuración básica."
+		pause_msg \
+			"Restaurado" \
+			"Se restauró la configuración básica."
 	fi
 }
 
@@ -419,9 +730,14 @@ reset_config() {
 test_xfcemenu() {
 	if [ -x "$BIN_FILE" ]; then
 		"$BIN_FILE" &
-		pause_msg "Prueba" "Se lanzó XFCEMenu."
+
+		pause_msg \
+			"Prueba" \
+			"Se lanzó XFCEMenu."
 	else
-		pause_msg "Error" "No se encontró el lanzador:\n\n$BIN_FILE\n\nEjecuta primero el instalador."
+		pause_msg \
+			"Error" \
+			"No se encontró el lanzador:\n\n$BIN_FILE\n\nEjecuta primero el instalador."
 	fi
 }
 
@@ -441,42 +757,75 @@ main_menu() {
 		[ -n "$sounds" ] || sounds="sin definir"
 
 		local choice
-		choice=$(dialog \
-			--clear \
-			--title "XFCEMenu Config" \
-			--menu "Menú: $menu_theme | Sonidos: $sounds" \
-			22 78 12 \
-			"1" "Cambiar tema de menú" \
-			"2" "Cambiar tema de botón" \
-			"3" "Cambiar tema de sonidos" \
-			"4" "Cambiar tema de iconos" \
-			"5" "Activar / desactivar sonidos" \
-			"6" "Ver config.ini" \
-			"7" "Editar config.ini manualmente" \
-			"8" "Restaurar configuración básica" \
-			"9" "Ver rutas detectadas" \
-			"10" "Probar XFCEMenu" \
-			"0" "Salir" \
-			3>&1 1>&2 2>&3)
+		choice="$(
+			dialog \
+				--clear \
+				--title "XFCEMenu Config" \
+				--menu "Menú: $menu_theme | Sonidos: $sounds" \
+				22 78 12 \
+				"1" "Cambiar tema de menú / Ver vista previa" \
+				"2" "Cambiar tema de botón" \
+				"3" "Cambiar tema de sonidos" \
+				"4" "Cambiar tema de iconos" \
+				"5" "Activar / desactivar sonidos" \
+				"6" "Ver config.ini" \
+				"7" "Editar config.ini manualmente" \
+				"8" "Restaurar configuración básica" \
+				"9" "Ver rutas detectadas" \
+				"10" "Probar XFCEMenu" \
+				"0" "Salir" \
+				3>&1 1>&2 2>&3
+		)"
 
 		local status=$?
 
-		if [ "$status" -eq "$DIALOG_CANCEL" ] || [ "$status" -eq "$DIALOG_ESC" ]; then
+		if [ "$status" -eq "$DIALOG_CANCEL" ] ||
+		   [ "$status" -eq "$DIALOG_ESC" ]; then
 			clear
 			exit 0
 		fi
 
 		case "$choice" in
-			1) select_menu_theme ;;
-			2) select_button_theme ;;
-			3) select_sound_theme ;;
-			4) select_icon_theme ;;
-			5) toggle_sounds ;;
-			6) show_config ;;
-			7) edit_config ;;
-			8) reset_config ;;
-			9) show_paths ;;
-			10) test_xfcemenu ;;
+			1)
+				select_menu_theme
+				;;
+
+			2)
+				select_button_theme
+				;;
+
+			3)
+				select_sound_theme
+				;;
+
+			4)
+				select_icon_theme
+				;;
+
+			5)
+				toggle_sounds
+				;;
+
+			6)
+				show_config
+				;;
+
+			7)
+				edit_config
+				;;
+
+			8)
+				reset_config
+				;;
+
+			9)
+				show_paths
+				;;
+
+			10)
+				test_xfcemenu
+				;;
+
 			0)
 				clear
 				exit 0
@@ -486,3 +835,4 @@ main_menu() {
 }
 
 main_menu
+```
