@@ -28,7 +28,7 @@ CONFIG_FILE = os.path.join(CONFIG_DIR, "config.ini")
 
 CACHE_DIR = os.path.expanduser("~/.cache/xfcemenu")
 APPS_CACHE_FILE = os.path.join(CACHE_DIR, "apps.cache.json")
-APPS_CACHE_VERSION = 1
+APPS_CACHE_VERSION = 2
 
 FAVORITES_FILE = os.path.join(CONFIG_DIR, "favorites.txt")
 
@@ -897,6 +897,44 @@ def open_path(path):
         print(f"XFCEMenu: no se pudo abrir ruta '{path}': {e}")
 
 
+def append_unique_path(paths, path):
+    path = os.path.expanduser(path or "").strip()
+
+    if not path:
+        return
+
+    normalized = os.path.normpath(path)
+
+    if normalized not in paths:
+        paths.append(normalized)
+
+
+def get_xdg_data_dirs():
+    """
+    Devuelve carpetas base XDG respetando la sesión actual.
+
+    Flatpak y Snap agregan lanzadores fuera de las rutas clásicas en varias
+    distros, por eso se suman explícitamente más abajo.
+    """
+    paths = []
+
+    data_home = os.environ.get(
+        "XDG_DATA_HOME",
+        os.path.expanduser("~/.local/share")
+    )
+    append_unique_path(paths, data_home)
+
+    data_dirs = os.environ.get(
+        "XDG_DATA_DIRS",
+        "/usr/local/share:/usr/share"
+    )
+
+    for path in data_dirs.split(":"):
+        append_unique_path(paths, path)
+
+    return paths
+
+
 def get_desktop_app_dirs():
     """
     Carpetas de aplicaciones .desktop que XFCEMenu escanea.
@@ -904,11 +942,30 @@ def get_desktop_app_dirs():
     Se mantiene en una función para que el cache y el escaneo real usen
     exactamente la misma lista.
     """
-    return [
-        "/usr/share/applications",
-        "/usr/local/share/applications",
-        os.path.expanduser("~/.local/share/applications"),
-    ]
+    app_dirs = []
+
+    for base_dir in get_xdg_data_dirs():
+        append_unique_path(app_dirs, os.path.join(base_dir, "applications"))
+
+    # Lanzadores exportados por Flatpak.
+    append_unique_path(
+        app_dirs,
+        "~/.local/share/flatpak/exports/share/applications"
+    )
+    append_unique_path(
+        app_dirs,
+        "/var/lib/flatpak/exports/share/applications"
+    )
+
+    # Lanzadores exportados por Snap.
+    append_unique_path(app_dirs, "/var/lib/snapd/desktop/applications")
+
+    # Compatibilidad con sesiones antiguas que no declaran XDG_DATA_DIRS.
+    append_unique_path(app_dirs, "/usr/share/applications")
+    append_unique_path(app_dirs, "/usr/local/share/applications")
+    append_unique_path(app_dirs, "~/.local/share/applications")
+
+    return app_dirs
 
 
 def build_apps_cache_signature(app_dirs=None):

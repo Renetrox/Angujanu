@@ -237,6 +237,11 @@ BASE_DIR="$INSTALL_DIR"
 PIDFILE="/tmp/xfcemenu-\${USER}.pid"
 PYTHON_BIN="python3"
 
+# Asegurar que el menú vea aplicaciones exportadas por Flatpak y Snap
+# aunque XFCE lance el panel con un entorno XDG incompleto.
+export XDG_DATA_DIRS="\$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/var/lib/snapd/desktop:\${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export PATH="\$HOME/.local/bin:/snap/bin:\$PATH"
+
 if [ -f "\$PIDFILE" ]; then
 	OLD_PID="\$(cat "\$PIDFILE" 2>/dev/null)"
 
