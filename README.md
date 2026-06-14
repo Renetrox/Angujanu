@@ -1,20 +1,44 @@
-# XFCEMenu
+<img width="1491" height="1055" alt="Angujanú logo with mouse mascot" src="https://github.com/user-attachments/assets/183aeb6a-e179-4ba3-9b66-b12ed501c850" />
 
-<img width="821" height="737" alt="93057-1-1366698742" src="https://github.com/user-attachments/assets/86bf513d-b1f3-4e50-af07-26003328347a" />
+<img width="821" height="737" alt="Legacy GnoMenu style menu theme preview" src="https://github.com/user-attachments/assets/86bf513d-b1f3-4e50-af07-26003328347a" />
 
-**XFCEMenu** is an experimental classic Start Menu for XFCE, inspired by the old **GnoMenu** project.
+**Angujanú** is an experimental classic Start Menu for XFCE, inspired by the old **GnoMenu** project.
 
-The goal is to bring back a skinnable desktop menu experience for lightweight Linux desktops, with special focus on reading and adapting legacy GnoMenu themes.
+The goal is to bring back a skinnable desktop menu experience for lightweight Linux desktops, with special focus on reading and adapting legacy GnoMenu-style themes.
 
-XFCEMenu is currently a working Python 3 / GTK3 / Cairo prototype for XFCE and MX Linux. It can load several legacy-style GnoMenu themes, render the menu window with transparency, show application categories, launch programs, and use a local user installer with a dialog-based configuration menu.
+Angujanú is the public name, installer name and visual identity of the project.
+
+The internal application is still called **XFCEMenu**, and its executable, configuration paths and theme structure currently remain unchanged for compatibility.
+
+XFCEMenu is a working Python 3 / GTK3 / Cairo prototype for XFCE and MX Linux. It can load several legacy-style GnoMenu themes, render the menu window with transparency, show application categories, launch programs, and use a local user installer with a dialog-based configuration menu.
+
+## Why Angujanú?
+
+**Angujanú** is inspired by **anguja**, a Guaraní word for **mouse**.
+
+The name also connects naturally with **XFCE**, a lightweight desktop environment commonly associated with a mouse mascot. Since this project is mainly designed as a classic XFCE panel menu, the mouse became a fitting visual identity.
+
+Angujanú combines three ideas:
+
+* the mouse reference from XFCE
+* the Guaraní word *anguja*
+* the retro Linux desktop spirit of GnoMenu-style customization
+
+In short:
+
+* **Angujanú** is the public project name, installer name and visual identity.
+* **XFCEMenu** is the current internal engine and application name.
+* The project keeps the existing `xfcemenu` command, configuration paths and local installation structure for compatibility.
 
 ## What is this?
 
-XFCEMenu is **not** a fork of GnoMenu.
+Angujanú is **not** a fork of GnoMenu.
 
 GnoMenu was a Python 2 / GTK2 / GNOME Panel menu from the GNOME 2 era. It allowed users to create highly customized Start Menu skins using XML layouts and PNG assets.
 
 XFCEMenu is a new project built for modern XFCE systems. It aims to reuse the visual idea and part of the legacy theme format of GnoMenu while avoiding old GNOME Panel, Bonobo, gconf and Python 2 dependencies.
+
+Angujanú / XFCEMenu is intended as a small legacy theme renderer and classic Start Menu experiment, not as a replacement for Whisker Menu or the native XFCE menu.
 
 ## Project goals
 
@@ -22,7 +46,7 @@ XFCEMenu is a new project built for modern XFCE systems. It aims to reuse the vi
 * Support legacy GnoMenu menu themes.
 * Support legacy GnoMenu button/orb themes.
 * Support legacy GnoMenu sound and icon themes where possible.
-* Import old `.tar`, `.tar.gz` theme packages.
+* Import old `.tar` and `.tar.gz` theme packages.
 * Render XML-based layouts with PNG assets.
 * Provide a real application launcher with categories.
 * Keep the project lightweight and suitable for XFCE / MX Linux.
@@ -72,7 +96,6 @@ Tested with themes such as:
 * Complete button/orb behavior for all legacy states.
 * Complete sound theme behavior.
 * Complete icon theme behavior.
-* Search bar functionality.
 * Favorites.
 * Recent applications.
 * Avatar / user image preview behavior.
@@ -88,7 +111,7 @@ Whisker Menu is a great XFCE menu, but it is not designed to load old GnoMenu th
 
 GnoMenu themes are based on XML layout files with absolute coordinates, PNG backgrounds, custom buttons, labels, icons and separate menu/button/icon themes.
 
-XFCEMenu is intended as a small legacy theme renderer and classic Start Menu experiment, not as a replacement for Whisker Menu.
+Angujanú / XFCEMenu is intended as a small legacy theme renderer and classic Start Menu experiment, not as a replacement for Whisker Menu.
 
 ## Directory structure
 
@@ -352,7 +375,7 @@ Supported or partially supported:
 * `WindowDimensions`
 * `IconSettings`
 * `ProgramListSettings`
-* `SearchBarSettings`, partial / placeholder behavior
+* `SearchBarSettings`, partial behavior
 * `Button`
 * `Label`
 * basic command execution
@@ -366,7 +389,6 @@ Planned or incomplete:
 * `Capabilities`
 * `Image`
 * `Tab`
-* complete search behavior
 * complete icon preview behavior
 * complete sound event mapping
 * complete button/orb state integration
@@ -391,7 +413,7 @@ Shutdown          → xfce4-session-logout --halt
 
 ## Design philosophy
 
-XFCEMenu does not try to revive GNOME 2.
+Angujanú / XFCEMenu does not try to revive GNOME 2.
 
 It tries to preserve the useful part of GnoMenu:
 
@@ -451,7 +473,7 @@ The code is new. The inspiration is old.
 * Possible native xfce4-panel plugin.
 * More complete GnoMenu compatibility.
 
-### Current panel behavior
+## Current panel behavior
 
 XFCEMenu is currently designed and tested primarily as a classic Start Menu opened from a launcher placed on the **left side of a bottom XFCE panel**, similar to the traditional Windows/GnoMenu layout.
 
@@ -463,9 +485,11 @@ Better positioning support for additional panel layouts may be added later.
 
 This project is intended to be released as free software.
 
-Legacy GnoMenu was released under the GNU General Public License. XFCEMenu should respect the licenses of any original GnoMenu code, themes or assets used for reference or testing.
+Legacy GnoMenu was released under the GNU General Public License. Angujanú / XFCEMenu should respect the licenses of any original GnoMenu code, themes or assets used for reference or testing.
 
 Themes may have their own licenses. Always check the original theme package before redistribution.
+
+The Angujanú branding, logo and mascot are original project assets, unless otherwise stated.
 
 ## Credits
 
@@ -476,5 +500,8 @@ Inspired by:
 * Community themes from GNOME-Look
 * Windows XP / Vista / 7 style menu layouts
 * Lightweight Linux desktop customization
+* XFCE and its mouse identity
+* Paraguayan / Guaraní language inspiration through the word *anguja*
 
-XFCEMenu is an experimental project by Renetrox.
+Angujanú / XFCEMenu is an experimental project by Renetrox.
+
