@@ -1,4 +1,5 @@
-<img width="1491" height="1055" alt="Angujanú logo with mouse mascot" src="https://github.com/user-attachments/assets/183aeb6a-e179-4ba3-9b66-b12ed501c850" />
+<img width="1491" height="1055" alt="ChatGPT Image Jun 14, 2026, 12_57_41 PM" src="https://github.com/user-attachments/assets/f02b8a04-bd7a-43c4-8707-1b8c838b565d" />
+
 
 <img width="821" height="737" alt="Legacy GnoMenu style menu theme preview" src="https://github.com/user-attachments/assets/86bf513d-b1f3-4e50-af07-26003328347a" />
 
