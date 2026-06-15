@@ -2503,8 +2503,12 @@ class XFCEMenuWindow(Gtk.Window):
         if not app or not app.exec_cmd:
             return
 
+        home = os.path.expanduser("~")
+
         try:
-            subprocess.Popen(app.exec_cmd, shell=True)
+            # Lanzar desde HOME evita que Terminal y otras apps hereden
+            # ~/.local/share/xfcemenu como directorio de trabajo.
+            subprocess.Popen(app.exec_cmd, shell=True, cwd=home)
             self.close_menu()
         except Exception as e:
             print(f"XFCEMenu: no se pudo abrir '{app.name}': {e}")
