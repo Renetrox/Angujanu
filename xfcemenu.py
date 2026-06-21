@@ -646,7 +646,7 @@ LEGACY_BUTTON_LABELS = {
         "help": "Ayuda",
         "search": "Buscar",
         "run": "Ejecutar...",
-        "power": "",
+        "power": "Apagar",
         "aux": "",
         "lock": "Bloquear",
         "logoutnow": "Cerrar sesión",
@@ -673,7 +673,7 @@ LEGACY_BUTTON_LABELS = {
         "help": "Ajuda",
         "search": "Procurar",
         "run": "Executar...",
-        "power": "",
+        "power": "Desligar",
         "aux": "",
         "lock": "Trancar",
         "logoutnow": "Sair",
@@ -700,7 +700,7 @@ LEGACY_BUTTON_LABELS = {
         "help": "Help",
         "search": "Search",
         "run": "Run...",
-        "power": "",
+        "power": "Shut Down",
         "aux": "",
         "lock": "Lock",
         "logoutnow": "Log Out",
@@ -1502,6 +1502,16 @@ class XFCEMenuWindow(Gtk.Window):
             background-image: none;
         }}
 
+        /*
+         * Fallback visual solo para hover.
+         * Quitamos :selected para evitar barras pegadas o estilos raros
+         * cuando Gtk.ListBox mantiene una fila seleccionada.
+         */
+        #xfcemenu-program-row:hover {{
+            background-color: alpha(@theme_selected_bg_color, 0.35);
+            background-image: none;
+        }}
+
         .xfcemenu-program-label {{
             color: {program_text_color};
         }}
@@ -1509,15 +1519,6 @@ class XFCEMenuWindow(Gtk.Window):
         .xfcemenu-program-message {{
             color: {program_message_color};
         }}
-
-        #xfcemenu-program-row:selected .xfcemenu-program-label,
-        #xfcemenu-program-row:selected .xfcemenu-program-message {{
-            color: @theme_selected_fg_color;
-        }}
-
-        /* No tocamos el fondo de :hover ni de :selected.
-         * Esas barras las dibuja el tema GTK, igual que GnoMenu.
-         */
 
         #xfcemenu-search-entry {{
             min-height: 0px;
@@ -2050,7 +2051,7 @@ class XFCEMenuWindow(Gtk.Window):
 
         self.program_listbox = Gtk.ListBox()
         self.program_listbox.set_name("xfcemenu-program-list")
-        self.program_listbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        self.program_listbox.set_selection_mode(Gtk.SelectionMode.NONE)
         self.program_listbox.set_activate_on_single_click(True)
         self.program_listbox.add_events(Gdk.EventMask.BUTTON_PRESS_MASK)
         self.program_listbox.connect("row-activated", self.on_program_row_activated)
@@ -2211,12 +2212,9 @@ class XFCEMenuWindow(Gtk.Window):
         self.program_listbox.show_all()
 
     def select_first_row(self):
-        if not self.program_listbox:
-            return
-
-        first_row = self.program_listbox.get_row_at_index(0)
-        if first_row and first_row.get_selectable():
-            self.program_listbox.select_row(first_row)
+        # Sin estado :selected: no marcamos ninguna fila al abrir/cambiar vista.
+        # El resaltado visual queda a cargo de :hover para evitar la barra azul GTK.
+        return
 
     def create_base_row(self, item, icon_name, label_text):
         row = Gtk.ListBoxRow()
@@ -2284,12 +2282,10 @@ class XFCEMenuWindow(Gtk.Window):
 
     def on_program_row_enter(self, row, event):
         """
-        Hace que la selección siga al mouse, pero la pinta GTK.
-        Así la barra visual no es inventada por Cairo.
+        No seleccionamos la fila al pasar el mouse.
+        Gtk.ListBox pintaba :selected con una barra azul propia del tema GTK.
+        Ahora solo usamos el estado :hover definido en CSS.
         """
-        if self.program_listbox and row.get_selectable():
-            self.program_listbox.select_row(row)
-
         return False
 
     def on_program_list_button_press(self, listbox, event):
@@ -2307,8 +2303,6 @@ class XFCEMenuWindow(Gtk.Window):
 
         if not row:
             return False
-
-        listbox.select_row(row)
 
         if getattr(row, "item_type", "") != "app":
             return False
@@ -2339,9 +2333,6 @@ class XFCEMenuWindow(Gtk.Window):
         return True
 
     def on_program_row_button_press(self, row, event):
-        if self.program_listbox and row.get_selectable():
-            self.program_listbox.select_row(row)
-
         # Clic derecho sobre una aplicación: agregar/quitar favorito.
         if event.button == 3 and getattr(row, "item_type", "") == "app":
             app = getattr(row, "app", None)
@@ -3697,6 +3688,22 @@ class XFCEMenuWindow(Gtk.Window):
         name_lower = button.name.strip().lower()
         command_lower = button.command.strip().lower() if button.command else ""
 
+        markup_plain = ""
+
+        if button.markup:
+            markup_plain = re.sub(r"<[^>]+>", "", button.markup)
+            markup_plain = html.unescape(markup_plain).strip()
+
+            if "[TEXT]" not in button.markup and markup_plain == "":
+                return ""
+
+        # Si el XML trae texto explícito en Markup, se respeta.
+        # Si la traducción devuelve vacío (por ejemplo Command=Power en
+        # algunos temas legacy), usamos el texto original del Markup.
+        if markup_plain:
+            translated = tr_legacy_button_label(command_lower, markup_plain)
+            return translated if translated else markup_plain
+
         icon_only_names = {
             "power",
             "aux",
@@ -3730,13 +3737,6 @@ class XFCEMenuWindow(Gtk.Window):
 
         if button.y > (self.theme.height - 60) and (button.image or button.button_icon):
             return ""
-
-        if button.markup:
-            plain = re.sub(r"<[^>]+>", "", button.markup)
-            plain = html.unescape(plain).strip()
-
-            if "[TEXT]" not in button.markup and plain == "":
-                return ""
 
         translated = tr_legacy_button_label(command_lower, button.name)
         return translated
