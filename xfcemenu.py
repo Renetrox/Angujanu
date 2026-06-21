@@ -54,6 +54,9 @@ DEFAULT_CONFIG = {
         "button_theme": "Win2-7",
         "sound_theme": "Win2-7",
     },
+    "icons": {
+        "source": "auto",
+    },
     "behavior": {
         "close_on_focus_out": "true",
         "play_sounds": "true",
@@ -1217,13 +1220,27 @@ def load_desktop_apps():
 
 
 class XFCEMenuWindow(Gtk.Window):
-    def __init__(self, theme, icon_theme="", button_theme="", sound_theme="", play_sounds=True, close_on_focus_out=True, show_avatar=True, icon_size=24):
+    def __init__(
+        self,
+        theme,
+        icon_theme="",
+        button_theme="",
+        sound_theme="",
+        play_sounds=True,
+        close_on_focus_out=True,
+        show_avatar=True,
+        icon_size=24,
+        icon_source="auto",
+    ):
         super().__init__(title="XFCEMenu")
 
         self.theme = theme
         self.icon_theme = icon_theme or ""
         self.button_theme = button_theme or ""
         self.sound_theme = sound_theme or ""
+        self.icon_source = (icon_source or "auto").strip().lower()
+        if self.icon_source not in ("auto", "theme", "system"):
+            self.icon_source = "auto"
         self.play_sounds = bool(play_sounds)
         self.close_on_focus_out = bool(close_on_focus_out)
 
@@ -1622,48 +1639,45 @@ class XFCEMenuWindow(Gtk.Window):
 
     def load_icon_pixbuf(self, icon_name, size=28):
         """
-        Carga iconos legacy o iconos del tema GTK del sistema.
+        Carga iconos según configuración:
+
+            [icons]
+            source = auto    -> legacy primero, GTK si falla
+            source = theme   -> solo legacy/tema XFCEMenu
+            source = system  -> solo tema GTK/XFCE
 
         Ejemplos:
             Icon="folder-documents.png"
             Icon="computer.png"
             Icon="search.png"
+            Icon="applications-office"
         """
         if not icon_name:
             return None
 
-        # Si el icono viene como archivo legacy real, intentamos cargarlo desde el tema.
-        # Si viene como nombre GTK sin extensión (applications-office, user-home, etc.),
-        # saltamos directo al tema de iconos para evitar ruido de "imagen no encontrada".
-        looks_like_file = (
-            os.path.isabs(icon_name)
-            or "/" in icon_name
-            or icon_name.lower().endswith((".png", ".svg", ".xpm", ".jpg", ".jpeg"))
-        )
+        icon_source = getattr(self, "icon_source", "auto") or "auto"
+        icon_source = icon_source.strip().lower()
 
-        if looks_like_file:
-            pixbuf = self.load_pixbuf(icon_name)
-
-            if pixbuf:
-                return self.scale_pixbuf_contain(pixbuf, size, size)
-
-        icon_theme = Gtk.IconTheme.get_default()
+        if icon_source not in ("auto", "theme", "system"):
+            icon_source = "auto"
 
         base_name = icon_name.strip()
 
-        if base_name.lower().endswith((".png", ".svg", ".xpm")):
-            base_name = os.path.splitext(base_name)[0]
-
-        names_to_try = [base_name]
+        # Si viene como archivo legacy, quitamos extensión para buscar equivalente GTK.
+        gtk_base_name = base_name
+        if gtk_base_name.lower().endswith((".png", ".svg", ".xpm", ".jpg", ".jpeg")):
+            gtk_base_name = os.path.splitext(gtk_base_name)[0]
 
         aliases = {
             "back": "go-previous",
             "previous": "go-previous",
             "gtk-go-back": "go-previous",
             "go-back": "go-previous",
+
             "internet-web-browser": "web-browser",
             "web-browser": "applications-internet",
             "internet-mail": "mail-message-new",
+
             "applications-other": "applications-accessories",
             "applications-accessories": "applications-accessories",
             "applications-development": "applications-development",
@@ -1675,46 +1689,124 @@ class XFCEMenuWindow(Gtk.Window):
             "applications-system": "applications-system",
             "applications-utilities": "applications-utilities",
             "applications-wine": "wine",
+
             "folder-download": "folder-downloads",
             "folder-downloads": "folder-downloads",
+            "folder-images": "folder-pictures",
+            "folder-home": "user-home",
+            "folder-documents": "folder-documents",
+            "folder-music": "folder-music",
+            "folder-videos": "folder-videos",
+            "folder-pictures": "folder-pictures",
+
             "user-desktop": "user-desktop",
             "gtk-network": "network-workgroup",
             "gnome-network-properties": "preferences-system-network",
             "gnome-control-center": "preferences-system",
             "gnome-help": "help-browser",
             "emblem-package": "system-software-install",
-            "folder-images": "folder-pictures",
+
             "document-open-recent": "document-open-recent",
             "search": "system-search",
             "run": "system-run",
             "computer": "computer",
-            "folder-home": "user-home",
-            "folder-documents": "folder-documents",
-            "folder-music": "folder-music",
-            "folder-videos": "folder-videos",
-            "folder-pictures": "folder-pictures",
+
+            "lock": "system-lock-screen",
+            "logout": "system-log-out",
+            "logoutnow": "system-log-out",
+            "shutdown": "system-shutdown",
+            "power": "system-shutdown",
+            "restart": "system-reboot",
+            "reboot": "system-reboot",
+            "suspend": "system-suspend",
+
             "system-lock-screen": "system-lock-screen",
             "system-log-out": "system-log-out",
             "system-reboot": "system-reboot",
             "system-shutdown": "system-shutdown",
             "system-suspend": "system-suspend",
+
             "gtk-missing-image": "image-missing",
         }
 
-        if base_name in aliases:
-            names_to_try.append(aliases[base_name])
+        def load_from_legacy_theme():
+            looks_like_file = (
+                os.path.isabs(base_name)
+                or "/" in base_name
+                or base_name.lower().endswith((".png", ".svg", ".xpm", ".jpg", ".jpeg"))
+            )
 
-        for name in names_to_try:
-            try:
-                return icon_theme.load_icon(
-                    name,
-                    size,
-                    Gtk.IconLookupFlags.FORCE_SIZE
-                )
-            except Exception:
-                pass
+            names_to_try = [base_name]
 
-        print(f"XFCEMenu: icono GTK no encontrado: {icon_name}")
+            # En modo theme, si viene sin extensión igual probamos variantes comunes.
+            if not looks_like_file:
+                names_to_try.extend([
+                    base_name + ".png",
+                    base_name + ".svg",
+                    base_name + ".xpm",
+                ])
+
+            for candidate in names_to_try:
+                pixbuf = self.load_pixbuf(candidate)
+
+                if pixbuf:
+                    return self.scale_pixbuf_contain(pixbuf, size, size)
+
+            return None
+
+        def load_from_system_theme():
+            icon_theme = Gtk.IconTheme.get_default()
+
+            names_to_try = [gtk_base_name]
+
+            alias = aliases.get(gtk_base_name)
+            if alias and alias not in names_to_try:
+                names_to_try.append(alias)
+
+            # Algunos temas legacy usan nombres capitalizados o raros;
+            # probamos una versión normalizada.
+            normalized = gtk_base_name.lower().replace("_", "-").replace(" ", "-")
+            if normalized not in names_to_try:
+                names_to_try.append(normalized)
+
+            alias = aliases.get(normalized)
+            if alias and alias not in names_to_try:
+                names_to_try.append(alias)
+
+            for name in names_to_try:
+                try:
+                    return icon_theme.load_icon(
+                        name,
+                        size,
+                        Gtk.IconLookupFlags.FORCE_SIZE
+                    )
+                except Exception:
+                    pass
+
+            return None
+
+        if icon_source == "theme":
+            pixbuf = load_from_legacy_theme()
+            if not pixbuf:
+                print(f"XFCEMenu: icono legacy no encontrado: {icon_name}")
+            return pixbuf
+
+        if icon_source == "system":
+            pixbuf = load_from_system_theme()
+            if not pixbuf:
+                print(f"XFCEMenu: icono GTK no encontrado: {icon_name}")
+            return pixbuf
+
+        # auto: comportamiento compatible.
+        pixbuf = load_from_legacy_theme()
+        if pixbuf:
+            return pixbuf
+
+        pixbuf = load_from_system_theme()
+        if pixbuf:
+            return pixbuf
+
+        print(f"XFCEMenu: icono no encontrado: {icon_name}")
         return None
 
     def on_draw(self, widget, cr):
@@ -4150,6 +4242,12 @@ def main():
         help="Nombre de carpeta del paquete de iconos dentro de themes/Icon"
     )
     parser.add_argument(
+        "--icon-source",
+        choices=("auto", "theme", "system"),
+        default=None,
+        help="Fuente de iconos: auto, theme o system"
+    )
+    parser.add_argument(
         "--button-theme",
         default=None,
         help="Nombre de carpeta del paquete de botones dentro de themes/Button"
@@ -4180,6 +4278,14 @@ def main():
     configured_icon = config.get("theme", "icon_theme", fallback=DEFAULT_CONFIG["theme"]["icon_theme"])
     configured_button = config.get("theme", "button_theme", fallback=DEFAULT_CONFIG["theme"]["button_theme"])
     configured_sound = config.get("theme", "sound_theme", fallback=DEFAULT_CONFIG["theme"]["sound_theme"])
+    configured_icon_source = config.get(
+        "icons",
+        "source",
+        fallback=DEFAULT_CONFIG["icons"]["source"]
+    ).strip().lower()
+
+    if configured_icon_source not in ("auto", "theme", "system"):
+        configured_icon_source = "auto"
 
     menu_theme = resolve_theme_choice(
         "menu",
@@ -4208,6 +4314,8 @@ def main():
         menu_theme
     )
 
+    icon_source = args.icon_source or configured_icon_source
+
     if not menu_theme:
         print("XFCEMenu: no se encontró ningún tema de menú en:")
         print(f"  {os.path.join(THEMES_DIR, 'Menu')}")
@@ -4232,6 +4340,7 @@ def main():
     print(f"  Config: {CONFIG_FILE}")
     print(f"  Menu:   {menu_theme}")
     print(f"  Icon:   {icon_theme or '(fallback GTK)'}")
+    print(f"  Source: {icon_source}")
     print(f"  Button: {button_theme or '(auto)'}")
     print(f"  Sound:  {sound_theme or '(sin sonidos)'}")
     print(f"  Temas:  {THEMES_DIR}")
@@ -4253,7 +4362,8 @@ def main():
             play_sounds=play_sounds,
             close_on_focus_out=close_on_focus_out,
             show_avatar=show_avatar,
-            icon_size=icon_size
+            icon_size=icon_size,
+            icon_source=icon_source
         )
         window.set_application(application)
         window.show_all()

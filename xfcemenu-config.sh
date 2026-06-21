@@ -48,6 +48,9 @@ icon_theme = Win7_Icons_1.1
 button_theme = Win2-7
 sound_theme = Win2-7
 
+[icons]
+source = auto
+
 [behavior]
 close_on_focus_out = true
 play_sounds = true
@@ -596,6 +599,51 @@ select_icon_theme() {
 }
 
 # ------------------------------------------------------------
+# Fuente de iconos
+# ------------------------------------------------------------
+
+select_icon_source() {
+	local current
+	current="$(get_ini_value icons source)"
+
+	case "$current" in
+		theme|system|auto)
+			;;
+		*)
+			current="auto"
+			;;
+	esac
+
+	local selected
+	selected="$(
+		dialog \
+			--clear \
+			--title "Fuente de iconos" \
+			--menu "Actual: $current
+
+auto: usa iconos legacy y cae al sistema si falta alguno.
+theme: solo usa iconos del tema XFCEMenu/GnoMenu.
+system: usa iconos del tema GTK/XFCE." \
+			18 78 6 \
+			"auto" "Tema legacy primero, sistema si falla" \
+			"theme" "Solo iconos del tema" \
+			"system" "Solo iconos del sistema" \
+			3>&1 1>&2 2>&3
+	)"
+
+	local status=$?
+
+	if [ "$status" -eq 0 ] && [ -n "$selected" ]; then
+		set_ini_value icons source "$selected"
+		pause_msg \
+			"Fuente de iconos" \
+			"Nueva fuente de iconos:
+
+$selected"
+	fi
+}
+
+# ------------------------------------------------------------
 # Sonidos
 # ------------------------------------------------------------
 
@@ -749,30 +797,34 @@ main_menu() {
 	while true; do
 		local menu_theme
 		local sounds
+		local icon_source
 
 		menu_theme="$(get_ini_value theme menu_theme)"
 		sounds="$(get_ini_value behavior play_sounds)"
+		icon_source="$(get_ini_value icons source)"
 
 		[ -n "$menu_theme" ] || menu_theme="sin definir"
 		[ -n "$sounds" ] || sounds="sin definir"
+		[ -n "$icon_source" ] || icon_source="auto"
 
 		local choice
 		choice="$(
 			dialog \
 				--clear \
 				--title "XFCEMenu Config" \
-				--menu "Menú: $menu_theme | Sonidos: $sounds" \
-				22 78 12 \
+				--menu "Menú: $menu_theme | Sonidos: $sounds | Iconos: $icon_source" \
+				23 78 13 \
 				"1" "Cambiar tema de menú / Ver vista previa" \
 				"2" "Cambiar tema de botón" \
 				"3" "Cambiar tema de sonidos" \
 				"4" "Cambiar tema de iconos" \
-				"5" "Activar / desactivar sonidos" \
-				"6" "Ver config.ini" \
-				"7" "Editar config.ini manualmente" \
-				"8" "Restaurar configuración básica" \
-				"9" "Ver rutas detectadas" \
-				"10" "Probar XFCEMenu" \
+				"5" "Fuente de iconos: auto / tema / sistema" \
+				"6" "Activar / desactivar sonidos" \
+				"7" "Ver config.ini" \
+				"8" "Editar config.ini manualmente" \
+				"9" "Restaurar configuración básica" \
+				"10" "Ver rutas detectadas" \
+				"11" "Probar XFCEMenu" \
 				"0" "Salir" \
 				3>&1 1>&2 2>&3
 		)"
@@ -803,26 +855,30 @@ main_menu() {
 				;;
 
 			5)
-				toggle_sounds
+				select_icon_source
 				;;
 
 			6)
-				show_config
+				toggle_sounds
 				;;
 
 			7)
-				edit_config
+				show_config
 				;;
 
 			8)
-				reset_config
+				edit_config
 				;;
 
 			9)
-				show_paths
+				reset_config
 				;;
 
 			10)
+				show_paths
+				;;
+
+			11)
 				test_xfcemenu
 				;;
 
@@ -835,4 +891,3 @@ main_menu() {
 }
 
 main_menu
-```
