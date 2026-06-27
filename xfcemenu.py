@@ -751,7 +751,7 @@ CATEGORY_DEFINITIONS = [
     ("games", tr_category("games", "Games"), "applications-games", "Game"),
     ("multimedia", tr_category("multimedia", "Multimedia"), "applications-multimedia", "AudioVideo;Audio;Video;Player;Recorder"),
     ("development", tr_category("development", "Development"), "applications-development", "Development"),
-    ("software", tr_category("software", "Software Center"), "system-software-install", "PackageManager;System;Settings"),
+    ("software", tr_category("software", "Software Center"), "system-software-install", "software-center-action"),
     ("places", tr_category("places", "Places"), "folder", "places"),
     ("system", tr_category("system", "System"), "applications-system", "System;Settings"),
     ("wine", tr_category("wine", "Wine"), "applications-wine", "Wine;X-Wine"),
@@ -788,6 +788,10 @@ def app_matches_category(app, matcher):
             or "thunderbird" in cmd
             or "mail" in name
         )
+
+    if matcher == "software-center-action":
+        # Software Center es un acceso directo legacy, no una categoría.
+        return False
 
     wanted = {item.strip() for item in matcher.split(";") if item.strip()}
 
@@ -898,6 +902,48 @@ def open_path(path):
         )
     except Exception as e:
         print(f"XFCEMenu: no se pudo abrir ruta '{path}': {e}")
+
+
+def open_software_center():
+    """
+    Abre el gestor/centro de software como acceso directo legacy.
+
+    En GnoMenu "Software Center" no era una categoría de aplicaciones:
+    era un lanzador hacia Ubuntu Software / GNOME Software / Synaptic,
+    según lo disponible en el sistema.
+    """
+    candidates = [
+        ["synaptic-pkexec"],
+        ["synaptic"],
+        ["gnome-software"],
+        ["ubuntu-software"],
+        ["pamac-manager"],
+        ["plasma-discover"],
+        ["mintinstall"],
+        ["io.elementary.appcenter"],
+        ["bauh"],
+    ]
+
+    home = os.path.expanduser("~")
+
+    for cmd in candidates:
+        executable = cmd[0]
+
+        if shutil.which(executable):
+            try:
+                subprocess.Popen(
+                    cmd,
+                    cwd=home,
+                    stdout=subprocess.DEVNULL,
+                    stderr=subprocess.DEVNULL
+                )
+                print(f"XFCEMenu: centro de software abierto con {executable}")
+                return True
+            except Exception as e:
+                print(f"XFCEMenu: no se pudo abrir {executable}: {e}")
+
+    print("XFCEMenu: no se encontró gestor de software compatible.")
+    return False
 
 
 def append_unique_path(paths, path):
@@ -1986,8 +2032,8 @@ class XFCEMenuWindow(Gtk.Window):
             category = MenuCategory(key, name, icon, matcher)
             category.apps = [app for app in self.apps if app_matches_category(app, matcher)]
 
-            # En la vista inicial no mostramos categorías vacías, salvo Applications y Places/Locais.
-            if category.apps or key in ("all", "places"):
+            # En la vista inicial no mostramos categorías vacías, salvo accesos legacy directos.
+            if category.apps or key in ("all", "places", "software"):
                 category.apps.sort(key=lambda app: app.name.lower())
                 categories.append(category)
 
@@ -2509,6 +2555,11 @@ class XFCEMenuWindow(Gtk.Window):
 
             if category and getattr(category, "key", "") == "places":
                 self.show_computer_items()
+                return
+
+            if category and getattr(category, "key", "") == "software":
+                open_software_center()
+                self.close_menu()
                 return
 
             self.show_category_apps(category)
@@ -3815,7 +3866,7 @@ class XFCEMenuWindow(Gtk.Window):
             "gestor de paquetes",
             "centro de software",
         ):
-            run_command("software-center")
+            open_software_center()
             return True
 
         if command_lower in ("printer", "printers"):
