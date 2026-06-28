@@ -575,11 +575,33 @@ select_menu_theme() {
 # ------------------------------------------------------------
 
 select_button_theme() {
+	local before_theme
+	local after_theme
+
+	before_theme="$(get_ini_value theme button_theme)"
+
 	select_theme_from_dir \
 		"Seleccionar tema de botón" \
 		"theme" \
 		"button_theme" \
 		"$BUTTON_THEMES_DIR"
+
+	after_theme="$(get_ini_value theme button_theme)"
+
+	# kesu-button lee el tema de botón al cargarse dentro de xfce4-panel.
+	# Por ahora reiniciamos el panel solo si realmente cambió button_theme.
+	if [ -n "$after_theme" ] && [ "$after_theme" != "$before_theme" ]; then
+		if command -v xfce4-panel >/dev/null 2>&1; then
+			xfce4-panel -r >/dev/null 2>&1 &
+			pause_msg \
+				"Panel reiniciado" \
+				"Se cambió el tema de botón:\n\n$before_theme → $after_theme\n\nSe reinició xfce4-panel para actualizar kesu-button."
+		else
+			pause_msg \
+				"Tema cambiado" \
+				"Se cambió el tema de botón:\n\n$before_theme → $after_theme\n\nNo se encontró xfce4-panel para reiniciar automáticamente."
+		fi
+	fi
 }
 
 select_sound_theme() {
