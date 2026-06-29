@@ -182,6 +182,153 @@ ICON_THEMES_DIR="$BASE_THEMES_DIR/Icon"
 [ -d "$ICON_THEMES_DIR" ] || ICON_THEMES_DIR="$BASE_THEMES_DIR"
 
 # ------------------------------------------------------------
+# Utilidades simples para config.ini
+# ------------------------------------------------------------
+
+ensure_ini_section() {
+	local section="$1"
+
+	if ! grep -q "^\[$section\]" "$CONFIG_FILE"; then
+		{
+			echo ""
+			echo "[$section]"
+		} >> "$CONFIG_FILE"
+	fi
+}
+
+ensure_ini_key() {
+	local section="$1"
+	local key="$2"
+	local value="$3"
+	local tmp_file="$CONFIG_FILE.tmp"
+
+	ensure_ini_section "$section"
+
+	if awk -F '=' -v section="[$section]" -v key="$key" '
+		$0 == section {
+			found=1
+			next
+		}
+
+		/^\[/ {
+			found=0
+		}
+
+		found {
+			k=$1
+			gsub(/^[ \t]+|[ \t]+$/, "", k)
+
+			if (k == key) {
+				foundkey=1
+			}
+		}
+
+		END {
+			exit foundkey ? 0 : 1
+		}
+	' "$CONFIG_FILE"; then
+		return 0
+	fi
+
+	awk -v section="[$section]" -v key="$key" -v value="$value" '
+		$0 == section {
+			found=1
+			inserted=0
+			print
+			next
+		}
+
+		/^\[/ && found && !inserted {
+			print key " = " value
+			inserted=1
+			found=0
+			print
+			next
+		}
+
+		{
+			print
+		}
+
+		END {
+			if (found && !inserted) {
+				print key " = " value
+			}
+		}
+	' "$CONFIG_FILE" > "$tmp_file"
+
+	mv "$tmp_file" "$CONFIG_FILE"
+}
+
+set_ini_key() {
+	local section="$1"
+	local key="$2"
+	local value="$3"
+	local tmp_file="$CONFIG_FILE.tmp"
+
+	ensure_ini_section "$section"
+
+	if awk -F '=' -v section="[$section]" -v key="$key" '
+		$0 == section {
+			found=1
+			next
+		}
+
+		/^\[/ {
+			found=0
+		}
+
+		found {
+			k=$1
+			gsub(/^[ \t]+|[ \t]+$/, "", k)
+
+			if (k == key) {
+				foundkey=1
+			}
+		}
+
+		END {
+			exit foundkey ? 0 : 1
+		}
+	' "$CONFIG_FILE"; then
+		awk -F '=' \
+			-v section="[$section]" \
+			-v key="$key" \
+			-v value="$value" '
+			$0 == section {
+				found=1
+				print
+				next
+			}
+
+			/^\[/ {
+				found=0
+				print
+				next
+			}
+
+			found {
+				k=$1
+				gsub(/^[ \t]+|[ \t]+$/, "", k)
+
+				if (k == key) {
+					print key " = " value
+					next
+				}
+			}
+
+			{
+				print
+			}
+		' "$CONFIG_FILE" > "$tmp_file"
+
+		mv "$tmp_file" "$CONFIG_FILE"
+	else
+		ensure_ini_key "$section" "$key" "$value"
+	fi
+}
+
+# ------------------------------------------------------------
 # Crear configuración inicial
 # ------------------------------------------------------------
 
@@ -201,6 +348,11 @@ play_sounds = true
 show_avatar = true
 panel_mode = true
 
+[kesu-button]
+label_position_scale = false
+label_offset_x = 10
+label_offset_y = 3
+
 [interface]
 language = auto
 icon_size = 24
@@ -213,6 +365,7 @@ menu_themes_dir = $MENU_THEMES_DIR
 button_themes_dir = $BUTTON_THEMES_DIR
 sound_themes_dir = $SOUND_THEMES_DIR
 icon_themes_dir = $ICON_THEMES_DIR
+launcher = $BIN_FILE
 EOF
 
 	echo "  Configuración creada:"
@@ -220,8 +373,24 @@ EOF
 else
 	echo "  Configuración existente conservada:"
 	echo "  $CONFIG_FILE"
+
+	# Mantener rutas actualizadas aunque se conserve la configuración existente.
+	set_ini_key paths install_dir "$INSTALL_DIR"
+	set_ini_key paths base_themes_dir "$BASE_THEMES_DIR"
+	set_ini_key paths menu_themes_dir "$MENU_THEMES_DIR"
+	set_ini_key paths button_themes_dir "$BUTTON_THEMES_DIR"
+	set_ini_key paths sound_themes_dir "$SOUND_THEMES_DIR"
+	set_ini_key paths icon_themes_dir "$ICON_THEMES_DIR"
+	set_ini_key paths launcher "$BIN_FILE"
 fi
 
+# Asegurar valores nuevos para instalaciones existentes sin pisar ajustes del usuario.
+ensure_ini_key kesu-button label_position_scale false
+ensure_ini_key kesu-button label_offset_x 10
+ensure_ini_key kesu-button label_offset_y 3
+ensure_ini_key paths launcher "$BIN_FILE"
+
+echo "  Configuración kesu-button verificada."
 echo ""
 
 # ------------------------------------------------------------
@@ -428,10 +597,11 @@ echo "O con terminal automática:"
 echo ""
 echo "  xfcemenu-config-terminal"
 echo ""
-echo "Para agregarlo al panel:"
+echo "Para usar kesu-button:"
 echo ""
-echo "  Panel → Agregar nuevos elementos → Lanzador"
-echo "  Luego selecciona XFCEMenu."
+echo "  Instala kesu-button como plugin de xfce4-panel."
+echo "  Luego agrégalo desde:"
+echo "  Panel → Agregar nuevos elementos → Kesú"
 echo ""
 echo "Rutas:"
 echo ""
