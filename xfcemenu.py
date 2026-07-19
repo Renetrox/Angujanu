@@ -946,6 +946,188 @@ def open_software_center():
     return False
 
 
+
+def sanitize_desktop_filename(name):
+    """
+    Crea un nombre seguro para archivos .desktop generados por Angujanu/XFCEMenu.
+    Se usa solo como fallback cuando la app no tiene un .desktop original válido.
+    """
+    value = (name or "app").strip().lower()
+    value = re.sub(r"[^a-z0-9._-]+", "-", value)
+    value = value.strip("-._")
+
+    if not value:
+        value = "app"
+
+    return value + ".desktop"
+
+
+def unique_desktop_target(target_dir, filename):
+    """
+    Devuelve una ruta libre para no pisar accesos existentes.
+    """
+    os.makedirs(target_dir, exist_ok=True)
+
+    if not filename.lower().endswith(".desktop"):
+        filename += ".desktop"
+
+    target = os.path.join(target_dir, filename)
+
+    if not os.path.exists(target):
+        return target
+
+    base, ext = os.path.splitext(filename)
+    ext = ext or ".desktop"
+
+    angu_target = os.path.join(target_dir, f"{base}-angujanu{ext}")
+    if not os.path.exists(angu_target):
+        return angu_target
+
+    counter = 2
+    while True:
+        numbered = os.path.join(target_dir, f"{base}-angujanu-{counter}{ext}")
+        if not os.path.exists(numbered):
+            return numbered
+        counter += 1
+
+
+def mark_desktop_file_trusted(path):
+    """
+    Intenta dejar el .desktop ejecutable/confiable para gestores de escritorio.
+    En XFCE normalmente chmod +x alcanza; gio metadata ayuda en algunos entornos.
+    """
+    try:
+        os.chmod(path, 0o755)
+    except Exception as error:
+        print(f"XFCEMenu: no se pudo marcar ejecutable {path}: {error}")
+
+    if shutil.which("gio"):
+        try:
+            subprocess.Popen(
+                ["gio", "set", path, "metadata::trusted", "true"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
+
+
+def copy_app_desktop_file(app, target_dir, prefix_name=False):
+    """
+    Copia el .desktop original de una app a una carpeta destino.
+
+    Si la app no tiene desktop_file válido, crea un .desktop mínimo usando
+    Name, Exec e Icon.
+    """
+    os.makedirs(target_dir, exist_ok=True)
+
+    source = (getattr(app, "desktop_file", "") or "").strip()
+    app_name = (getattr(app, "name", "") or "Application").strip()
+    exec_cmd = (getattr(app, "exec_cmd", "") or "").strip()
+    icon_name = (getattr(app, "icon", "") or "").strip()
+
+    if source and os.path.isfile(source):
+        filename = os.path.basename(source)
+        if prefix_name and not filename.lower().startswith("angujanu-"):
+            filename = "angujanu-" + filename
+
+        target = unique_desktop_target(target_dir, filename)
+        shutil.copy2(source, target)
+    else:
+        filename = sanitize_desktop_filename(app_name)
+        if prefix_name and not filename.lower().startswith("angujanu-"):
+            filename = "angujanu-" + filename
+
+        target = unique_desktop_target(target_dir, filename)
+
+        content = [
+            "[Desktop Entry]",
+            "Type=Application",
+            f"Name={app_name}",
+            f"Exec={exec_cmd}",
+            f"Icon={icon_name}" if icon_name else "Icon=application-x-executable",
+            "Terminal=false",
+            "Categories=Utility;",
+            "",
+        ]
+
+        with open(target, "w", encoding="utf-8") as handle:
+            handle.write("\n".join(content))
+
+    mark_desktop_file_trusted(target)
+    return target
+
+
+def create_desktop_shortcut(app):
+    """
+    Crea un acceso directo en el Escritorio del usuario.
+    Respeta XDG: Escritorio/Desktop/Área de trabalho/etc.
+    """
+    desktop_dir = get_xdg_user_dir("DESKTOP", "~/Desktop")
+    target = copy_app_desktop_file(app, desktop_dir, prefix_name=False)
+
+    print(f"XFCEMenu: acceso creado en el escritorio: {target}")
+
+    # Notificación opcional, sin depender de ella.
+    if shutil.which("notify-send"):
+        try:
+            subprocess.Popen(
+                ["notify-send", "Angujanu", f"Acceso creado: {os.path.basename(target)}"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
+
+    return target
+
+
+def prepare_panel_shortcut(app):
+    """
+    Prepara un lanzador para el panel sin tocar a mano xfconf ni los archivos
+    internos de ~/.config/xfce4/panel.
+
+    1. copia/crea el .desktop en ~/.local/share/applications/
+    2. actualiza la base de aplicaciones si es posible
+    3. abre el diálogo oficial de XFCE para agregar un Launcher al panel
+    """
+    applications_dir = os.path.expanduser("~/.local/share/applications")
+    target = copy_app_desktop_file(app, applications_dir, prefix_name=True)
+
+    print(f"XFCEMenu: lanzador preparado para panel: {target}")
+
+    if shutil.which("update-desktop-database"):
+        try:
+            subprocess.Popen(
+                ["update-desktop-database", applications_dir],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
+
+    if shutil.which("xfce4-panel"):
+        try:
+            subprocess.Popen(
+                ["xfce4-panel", "--add=launcher"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception as error:
+            print(f"XFCEMenu: no se pudo abrir diálogo de panel: {error}")
+    elif shutil.which("notify-send"):
+        try:
+            subprocess.Popen(
+                ["notify-send", "Angujanu", "Lanzador preparado en ~/.local/share/applications"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+        except Exception:
+            pass
+
+    return target
+
+
 def append_unique_path(paths, path):
     path = os.path.expanduser(path or "").strip()
 
@@ -2516,6 +2698,32 @@ class XFCEMenuWindow(Gtk.Window):
         )
         launch_item.connect("activate", lambda _item: self.launch_app(app))
         menu.append(launch_item)
+
+        desktop_item = Gtk.MenuItem(
+            label={
+                "es": "Crear acceso en el escritorio",
+                "pt": "Criar atalho na área de trabalho",
+                "en": "Create desktop shortcut",
+            }.get(detect_language(), "Crear acceso en el escritorio")
+        )
+        desktop_item.connect(
+            "activate",
+            lambda _item: create_desktop_shortcut(app)
+        )
+        menu.append(desktop_item)
+
+        panel_item = Gtk.MenuItem(
+            label={
+                "es": "Preparar acceso para panel",
+                "pt": "Preparar atalho para o painel",
+                "en": "Prepare panel shortcut",
+            }.get(detect_language(), "Preparar acceso para panel")
+        )
+        panel_item.connect(
+            "activate",
+            lambda _item: prepare_panel_shortcut(app)
+        )
+        menu.append(panel_item)
 
         menu.connect(
             "deactivate",
