@@ -425,7 +425,12 @@ fi
 
 cd "\$BASE_DIR" || exit 1
 
-"\$PYTHON_BIN" "\$BASE_DIR/xfcemenu.py" &
+ENTRYPOINT="\$BASE_DIR/xfcemenu_anchor.py"
+if [ ! -f "\$ENTRYPOINT" ]; then
+	ENTRYPOINT="\$BASE_DIR/xfcemenu.py"
+fi
+
+"\$PYTHON_BIN" "\$ENTRYPOINT" "\$@" &
 NEW_PID=\$!
 
 echo "\$NEW_PID" > "\$PIDFILE"
