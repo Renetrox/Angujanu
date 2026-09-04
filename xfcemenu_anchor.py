@@ -80,8 +80,9 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
             pass
 
         # GTK3 fallback for older bindings.
-        screen = self.get_screen()
         try:
+            screen = self.get_screen()
+
             if point_x is not None and point_y is not None:
                 monitor_index = screen.get_monitor_at_point(int(point_x), int(point_y))
             else:
