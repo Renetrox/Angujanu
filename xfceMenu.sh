@@ -5,8 +5,9 @@ PIDFILE="/tmp/xfcemenu-${USER}.pid"
 PYTHON_BIN="python3"
 
 # Asegurar que el menú vea aplicaciones exportadas por Flatpak y Snap
-aunque_xdg_default="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
-export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/var/lib/snapd/desktop:${aunque_xdg_default}"
+# aunque XFCE lance el panel con un entorno XDG incompleto.
+XDG_DATA_DIRS_DEFAULT="${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:/var/lib/snapd/desktop:${XDG_DATA_DIRS_DEFAULT}"
 export PATH="$HOME/.local/bin:/snap/bin:$PATH"
 
 # Si ya hay una instancia registrada, la cerramos.
