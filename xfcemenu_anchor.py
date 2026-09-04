@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """Compatibility bridge between the XFCE panel launcher (Kesu) and XFCEMenu.
 
-The main renderer stays in xfcemenu.py. This module consumes optional launcher
-geometry arguments, applies the legacy GnoMenu top-panel orientation when
-needed, and overrides window positioning. Without anchor arguments it uses the
-real monitor workarea instead of assuming a 32 px panel.
+This module keeps the main renderer in xfcemenu.py, adds runtime compatibility
+for original GnoMenu XML fields, applies top-panel orientation, and positions
+the menu from Kesu's real launcher geometry.
 """
 
 import argparse
 import copy
+import getpass
 import os
+import re
+import shlex
+import shutil
+import subprocess
 import sys
 
 import xfcemenu as core
+from legacy_compat import enrich_theme
 
 
 def parse_anchor_args(argv):
@@ -44,30 +49,30 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         self.anchor_width = max(0, int(ANCHOR_ARGS.anchor_width or 0))
         self.anchor_height = max(0, int(ANCHOR_ARGS.anchor_height or 0))
         self.panel_position = ANCHOR_ARGS.panel_position
+        self._legacy_images_drawn = False
 
-        # GnoMenu used the same XML for top and bottom panels. For a top panel
-        # it vertically flipped the menu skin and reflected the outer Y
-        # coordinates of theme objects. Work on a copy so the parsed theme
-        # remains untouched for normal/bottom launches.
-        if self.panel_position == "top":
-            args, kwargs = self._prepare_top_theme_args(args, kwargs)
-
+        args, kwargs = self._prepare_runtime_theme_args(args, kwargs)
         super().__init__(*args, **kwargs)
 
-    def _prepare_top_theme_args(self, args, kwargs):
+    def _prepare_runtime_theme_args(self, args, kwargs):
         theme = args[0] if args else kwargs.get("theme")
 
         if theme is None:
             return args, kwargs
 
-        oriented_theme = copy.deepcopy(theme)
-        self._orient_theme_for_top(oriented_theme)
+        # Always work on a copy: compatibility enrichment and orientation must
+        # never mutate the base object kept by core.main().
+        runtime_theme = copy.deepcopy(theme)
+        enrich_theme(runtime_theme)
+
+        if self.panel_position == "top":
+            self._orient_theme_for_top(runtime_theme)
 
         if args:
-            args = (oriented_theme,) + tuple(args[1:])
+            args = (runtime_theme,) + tuple(args[1:])
         else:
             kwargs = dict(kwargs)
-            kwargs["theme"] = oriented_theme
+            kwargs["theme"] = runtime_theme
 
         return args, kwargs
 
@@ -111,8 +116,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         except Exception:
             return
 
-        # Preserve the original coordinate for compatibility heuristics that
-        # describe the XML semantics rather than the rendered position.
         setattr(obj, "_angujanu_original_y", original_y)
         obj.y = int(theme_height - original_y - item_h)
 
@@ -126,7 +129,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         if theme_height <= 0:
             return
 
-        # Fixed-size outer regions.
         for block_name in ("program_list", "search_bar", "icon_settings"):
             block = getattr(theme, block_name, None)
             if block is None:
@@ -135,23 +137,21 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
             block_h = int(getattr(block, "height", 0) or 0)
             self._reflect_outer_y(theme_height, block, block_h)
 
-        # Menu buttons: GnoMenu reflected ButtonY using the source image height.
+        # The original loader used Image height for ButtonY reflection.
         for button in getattr(theme, "buttons", []) or []:
             image_h = self._theme_image_height(
                 theme,
-                getattr(button, "image", ""),
+                getattr(button, "image", "") or getattr(button, "image_back", ""),
                 26,
             )
             self._reflect_outer_y(theme_height, button, image_h)
 
-        # Tabs follow the same rule. If Image is missing, ImageSel is a useful
-        # legacy fallback because XFCEMenu can render either.
         for tab in getattr(theme, "tabs", []) or []:
             image_name = getattr(tab, "image", "") or getattr(tab, "image_sel", "")
             image_h = self._theme_image_height(theme, image_name, 96)
             self._reflect_outer_y(theme_height, tab, image_h)
 
-        # GnoMenu treated LabelY as an anchor point, not a sized rectangle.
+        # Labels use Y as an anchor point in the old engine.
         for label in getattr(theme, "labels", []) or []:
             if not hasattr(label, "y"):
                 continue
@@ -162,8 +162,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
             setattr(label, "_angujanu_original_y", original_y)
             label.y = int(theme_height - original_y)
 
-        # Future compatibility: if LegacyImage objects are added to the loader,
-        # orient them automatically with the same legacy rule.
         for image_def in getattr(theme, "images", []) or []:
             image_name = getattr(image_def, "image", "")
             image_h = self._theme_image_height(theme, image_name, 1)
@@ -177,9 +175,7 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
     def load_pixbuf(self, filename):
         pixbuf = super().load_pixbuf(filename)
 
-        # Only the main menu skin is flipped here. Buttons, tab icons, labels
-        # and GTK content stay upright; their outer Y coordinates were already
-        # reflected above.
+        # Flip only the main menu skin. Buttons, icons and text stay upright.
         if (
             pixbuf is not None
             and self.panel_position == "top"
@@ -193,8 +189,204 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
 
         return pixbuf
 
+    # ------------------------------------------------------------------
+    # Legacy menu XML rendering missing from the modern core
+    # ------------------------------------------------------------------
+
+    def draw_program_widgets(self):
+        # GnoMenu created MenuImage objects before interactive menu controls.
+        if not self._legacy_images_drawn:
+            self.draw_legacy_images()
+            self._legacy_images_drawn = True
+
+        return super().draw_program_widgets()
+
+    def draw_legacy_images(self):
+        for image_def in getattr(self.theme, "images", []) or []:
+            filename = getattr(image_def, "image", "") or ""
+            pixbuf = self.load_pixbuf(filename)
+
+            if not pixbuf:
+                continue
+
+            image = core.Gtk.Image.new_from_pixbuf(pixbuf)
+            x = int(getattr(image_def, "x", 0) or 0)
+            y = int(getattr(image_def, "y", 0) or 0)
+            self.fixed.put(image, x, y)
+
+        if getattr(self.theme, "images", None):
+            print(
+                "XFCEMenu: imágenes legacy dibujadas: "
+                f"{len(getattr(self.theme, 'images', []) or [])}"
+            )
+
+    def _scale_explicit_button_icon(self, pixbuf, size):
+        if not pixbuf:
+            return None
+
+        try:
+            size = int(size or 0)
+        except Exception:
+            size = 0
+
+        if size <= 0:
+            return pixbuf
+
+        try:
+            return pixbuf.scale_simple(
+                size,
+                size,
+                core.GdkPixbuf.InterpType.BILINEAR,
+            )
+        except Exception:
+            return pixbuf
+
+    def draw_button(self, button):
+        """Render ImageBack + Image using the original GnoMenu layer model."""
+        if button.name == ":SEPARATOR:":
+            pixbuf = self.load_pixbuf(
+                getattr(button, "image", "") or getattr(button, "image_back", "")
+            )
+            if pixbuf:
+                image = core.Gtk.Image.new_from_pixbuf(pixbuf)
+                self.fixed.put(image, button.x, button.y)
+            return
+
+        event = core.Gtk.EventBox()
+        event.set_visible_window(False)
+
+        container = core.Gtk.Fixed()
+        try:
+            container.set_has_window(False)
+        except Exception:
+            pass
+
+        # Original MenuButton:
+        #   ImageBack -> permanent background
+        #   Image     -> hover/selected overlay, cleared in normal state
+        normal_pixbuf = self.load_pixbuf(getattr(button, "image_back", ""))
+        hover_pixbuf = self.load_pixbuf(getattr(button, "image", ""))
+
+        label_text = self.extract_label_text(button)
+        has_label = bool(label_text)
+
+        width = 1
+        height = 1
+        normal_widget = None
+        hover_widget = None
+        icon_widget = None
+
+        if normal_pixbuf:
+            normal_widget = core.Gtk.Image.new_from_pixbuf(normal_pixbuf)
+            container.put(normal_widget, 0, 0)
+            width = max(width, normal_pixbuf.get_width())
+            height = max(height, normal_pixbuf.get_height())
+
+        if hover_pixbuf:
+            hover_widget = core.Gtk.Image.new_from_pixbuf(hover_pixbuf)
+            hover_widget.set_no_show_all(True)
+            hover_widget.hide()
+            container.put(hover_widget, 0, 0)
+            width = max(width, hover_pixbuf.get_width())
+            height = max(height, hover_pixbuf.get_height())
+
+        icon_pixbuf = None
+        icon_sel_pixbuf = None
+
+        if getattr(button, "button_icon", ""):
+            icon_pixbuf = self.load_pixbuf(button.button_icon)
+
+        if getattr(button, "button_icon_sel", ""):
+            icon_sel_pixbuf = self.load_pixbuf(button.button_icon_sel)
+
+        explicit_icon_size = int(getattr(button, "button_icon_size", 0) or 0)
+        icon_pixbuf = self._scale_explicit_button_icon(icon_pixbuf, explicit_icon_size)
+
+        if not icon_sel_pixbuf:
+            icon_sel_pixbuf = icon_pixbuf
+        else:
+            icon_sel_pixbuf = self._scale_explicit_button_icon(
+                icon_sel_pixbuf,
+                explicit_icon_size,
+            )
+
+        icon_x = int(getattr(button, "button_icon_x", 0) or 0)
+        icon_y = int(getattr(button, "button_icon_y", 0) or 0)
+
+        if icon_pixbuf:
+            icon_widget = core.Gtk.Image.new_from_pixbuf(icon_pixbuf)
+            container.put(icon_widget, icon_x, icon_y)
+            width = max(width, icon_x + icon_pixbuf.get_width())
+            height = max(height, icon_y + icon_pixbuf.get_height())
+
+        # Keep a practical minimum when a theme deliberately uses only text.
+        width = max(width, 120 if has_label else 1)
+        height = max(height, 26 if has_label else 1)
+
+        if label_text:
+            label = core.Gtk.Label()
+            label.set_use_markup(True)
+
+            forced_color = self.readable_text_color_for_area(
+                button.x + button.text_x,
+                button.y + button.text_y,
+                max(10, width - button.text_x - 4),
+                height,
+            )
+
+            self.safe_set_markup_or_text(
+                label,
+                button.markup,
+                label_text,
+                forced_color=forced_color,
+                legacy_text_correction=True,
+            )
+
+            alignment = int(getattr(button, "text_alignment", 0) or 0)
+            if alignment == 1:
+                label.set_xalign(0.5)
+            elif alignment >= 2:
+                label.set_xalign(1.0)
+            else:
+                label.set_xalign(0.0)
+
+            label.set_yalign(0.5)
+
+            text_x = int(button.text_x)
+            text_y = int(button.text_y + core.LEGACY_BUTTON_TEXT_BASELINE_OFFSET_Y)
+
+            # Old GnoMenu used width - TextX*2 - 2.
+            text_w = max(10, int(width - (text_x * 2) - 2))
+            text_h = max(1, height - min(0, text_y))
+            label.set_size_request(text_w, text_h)
+            container.put(label, text_x, text_y)
+
+        event.add(container)
+        event.set_size_request(width, height)
+
+        event.connect("button-press-event", self.on_button_clicked, button)
+        event.connect(
+            "enter-notify-event",
+            self.on_button_enter,
+            button,
+            hover_widget,
+            icon_widget,
+            icon_pixbuf,
+            icon_sel_pixbuf,
+        )
+        event.connect(
+            "leave-notify-event",
+            self.on_button_leave,
+            button,
+            hover_widget,
+            icon_widget,
+            icon_pixbuf,
+        )
+
+        self.fixed.put(event, int(button.x), int(button.y))
+
     def extract_label_text(self, button):
-        """Keep legacy icon-only heuristics based on the XML's original Y."""
+        """Keep icon-only heuristics based on the XML's original Y."""
         original_y = getattr(button, "_angujanu_original_y", None)
 
         if self.panel_position != "top" or original_y is None:
@@ -207,6 +399,78 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
             return super().extract_label_text(button)
         finally:
             button.y = rendered_y
+
+    def run_label_command(self, command):
+        """Run the small read-only command subset used by original GnoMenu labels."""
+        command = str(command or "").strip()
+        if not command:
+            return ""
+
+        if command == "whoami":
+            return getpass.getuser()
+
+        # Original documentation/themes use:
+        # /sbin/ip route | grep 'src ' | cut -d c -f3
+        # Reproduce the intent without invoking a shell pipeline.
+        if "ip route" in command and "src" in command:
+            ip_binary = shutil.which("ip")
+            if not ip_binary and os.path.isfile("/sbin/ip"):
+                ip_binary = "/sbin/ip"
+
+            if ip_binary:
+                try:
+                    output = subprocess.check_output(
+                        [ip_binary, "route"],
+                        stderr=subprocess.DEVNULL,
+                        text=True,
+                        timeout=1,
+                    )
+                    match = re.search(r"\bsrc\s+(\S+)", output)
+                    return match.group(1) if match else ""
+                except Exception:
+                    return ""
+
+        expanded = os.path.expandvars(command)
+
+        try:
+            argv = shlex.split(expanded)
+        except Exception:
+            return ""
+
+        if not argv:
+            return ""
+
+        executable = os.path.basename(argv[0])
+        allowed = {
+            "whoami",
+            "hostname",
+            "uname",
+            "date",
+            "uptime",
+            "lsb_release",
+        }
+
+        if executable not in allowed:
+            print(f"XFCEMenu: Label Command bloqueado por compat segura: {command}")
+            return ""
+
+        argv = [os.path.expanduser(value) for value in argv]
+
+        try:
+            output = subprocess.check_output(
+                argv,
+                shell=False,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                timeout=1,
+            )
+            return output.strip()
+        except Exception:
+            return ""
+
+    # ------------------------------------------------------------------
+    # Kesu launcher geometry
+    # ------------------------------------------------------------------
 
     def has_launcher_anchor(self):
         return self.anchor_x is not None and self.anchor_y is not None
@@ -243,7 +507,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         except Exception:
             pass
 
-        # GTK3 fallback for older bindings.
         try:
             screen = self.get_screen()
 
@@ -269,8 +532,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         anchor_h = int(self.anchor_height)
         edge = self.panel_position
 
-        # Use the launcher centre to choose the correct monitor in multi-monitor
-        # setups. The returned workarea also keeps the menu away from panel struts.
         point_x = anchor_x + max(0, anchor_w // 2)
         point_y = anchor_y + max(0, anchor_h // 2)
         workarea = self.get_monitor_workarea_for_point(point_x, point_y)
@@ -287,7 +548,7 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         elif edge == "right":
             x = anchor_x - menu_w
             y = anchor_y
-        else:  # bottom
+        else:
             x = anchor_x
             y = anchor_y - menu_h
 
@@ -310,7 +571,6 @@ class AnchoredXFCEMenuWindow(core.XFCEMenuWindow):
         workarea = self.get_monitor_workarea_for_point()
 
         if workarea is None:
-            # Last-resort compatibility fallback from the old implementation.
             return super().position_near_bottom_left()
 
         x = int(workarea.x)
