@@ -3,9 +3,9 @@
 
 <img width="821" height="737" alt="Legacy GnoMenu style menu theme preview" src="https://github.com/user-attachments/assets/86bf513d-b1f3-4e50-af07-26003328347a" />
 
-**Angujanú** is an experimental classic Start Menu for XFCE, inspired by the old **GnoMenu** project.
+**Angujanú** is a modern XFCE port of the classic **GnoMenu** experience, focused on preserving its vintage theme engine, visual behavior and community-made skins on a modern GTK3 / Python 3 desktop.
 
-The goal is to bring back a skinnable desktop menu experience for lightweight Linux desktops, with special focus on reading and adapting legacy GnoMenu-style themes.
+The goal is to bring back the skinnable desktop-menu experience of the GNOME 2 era for lightweight Linux desktops, while adapting legacy GnoMenu-style themes to modern XFCE instead of reviving the old GNOME Panel stack.
 
 Angujanú is the public name, installer name and visual identity of the project.
 
@@ -505,4 +505,3 @@ Inspired by:
 * Paraguayan / Guaraní language inspiration through the word *anguja*
 
 Angujanú / XFCEMenu is an experimental project by Renetrox.
-
