@@ -56,24 +56,27 @@ Angujanú / XFCEMenu is intended as a small legacy theme renderer and classic St
 
 ## Current status
 
-This project is currently experimental, but already usable as a personal XFCE panel menu.
+The project is still experimental, but it is already usable as a personal XFCE panel menu and its GnoMenu compatibility is considerably broader than the original prototype.
 
-Working prototype features:
+Currently working:
 
 * Loads legacy GnoMenu `themedata.xml` menu themes.
-* Reads `WindowDimensions`.
-* Reads `Background`.
-* Reads basic `Button` elements.
-* Reads basic `Label` elements.
-* Draws the menu background using Cairo.
-* Applies RGBA transparency and shape handling.
+* Reads `WindowDimensions` and can derive the menu size from the actual `Background` image, matching original GnoMenu behavior more closely.
+* Reads and renders `Background`, `IconSettings`, `ProgramListSettings`, `Button`, `Label` and standalone legacy `Image` elements.
+* Supports the original `ImageBack` + `Image` button-layer model for normal and hover/selected states.
+* Supports legacy button icon coordinates and size through `ButtonIconX`, `ButtonIconY` and `ButtonIconSize`.
+* Supports button `TextAlignment`.
+* Reads `Capabilities` including `HasSearch`, `HasIcon` and `HasFadeTransition`.
+* Reads `Tab` elements and old `IconX` / `IconY` / `IconSize` aliases used by older themes.
+* Applies RGBA transparency, alpha-based window shape and input shape handling.
 * Loads programs and categories from the desktop application database.
-* Shows a categorized application list.
-* Supports scrolling through the program list.
-* Launches installed applications.
-* Maps some old GnoMenu/GNOME commands to XFCE equivalents.
-* Supports basic shutdown, logout and session commands through command mapping.
-* Can work as an XFCE panel launcher.
+* Shows a categorized application list with scrolling and launches installed applications.
+* Maps old GnoMenu/GNOME commands to modern XFCE equivalents.
+* Supports shutdown, logout and session actions through command mapping.
+* Supports user avatar rendering and icon preview behavior in the legacy avatar area.
+* Supports top and bottom XFCE panels with legacy GnoMenu vertical orientation behavior.
+* Flips the main legacy skin and reflects legacy element coordinates for a top panel while keeping text and internal icons upright.
+* Can receive the real launcher geometry from the native **Kesu** XFCE panel plugin and open next to the actual button position instead of assuming the left edge of the panel.
 * Supports toggle behavior: clicking the launcher opens the menu, clicking again closes it.
 * Uses a user configuration file at `~/.config/xfcemenu/config.ini`.
 * Includes a dialog-based configuration tool.
@@ -89,22 +92,24 @@ Tested with themes such as:
 * `Win2-7Blue`
 * `Win2-7Standard-Es`
 * `Avio`
-* `WinOrb` button theme package, partially analyzed
+* `Win2-7MurrineBlack`
+* several classic GnoMenu-style button/orb themes through Kesu
 
 ## Not implemented or incomplete yet
 
-* Full compatibility with all GnoMenu themes.
-* Complete button/orb behavior for all legacy states.
-* Complete sound theme behavior.
-* Complete icon theme behavior.
+* Full compatibility with every GnoMenu theme and every unusual XML variant.
+* Selection of multiple `<theme color="...">` variants; the current compatibility layer still follows the first theme block used by the base loader.
+* Exact Cairo-era rendering of all `SearchBarSettings` visual properties.
+* Full `Tab` text/alignment/selection-color parity with original GnoMenu.
+* Full `Label` alignment and top-panel baseline parity with original GnoMenu.
+* Complete sound event parity for every legacy theme.
+* Complete icon theme parity for every legacy theme.
 * Favorites.
 * Recent applications.
-* Avatar / user image preview behavior.
-* Large icon preview on hover.
-* Native XFCE panel plugin.
 * Full graphical theme manager.
-* Export/import manager for themes.
+* Theme export manager.
 * Complete GnoMenu XML compatibility.
+* In the companion Kesu panel plugin, original GnoMenu `Top="1"` button themes still need the separate transparent top/overlay window used by the old two-window orb implementation.
 
 ## Why not use Whisker Menu?
 
@@ -121,9 +126,11 @@ Current development structure:
 ```text
 XFCEMenu/
 ├── xfcemenu.py
+├── xfcemenu_anchor.py
 ├── xfcemenu-config.sh
 ├── xfceMenu.sh
 ├── legacy_loader.py
+├── legacy_compat.py
 ├── command_mapper.py
 ├── importer.py
 ├── install_xfcemenu.sh
@@ -249,6 +256,8 @@ If the menu is already open, it closes the running instance using a PID file:
 
 This makes it suitable for use as an XFCE panel launcher.
 
+When launched by the native Kesu XFCE panel plugin, the compatibility bridge can also receive the launcher's real screen geometry and panel edge. This allows the menu to follow Kesu when the button is moved across the panel.
+
 ## Configuration file
 
 XFCEMenu uses:
@@ -368,31 +377,60 @@ xfcemenu
 
 ## Legacy GnoMenu theme support
 
-XFCEMenu currently supports a subset of the GnoMenu XML format.
+The current compatibility layer is intentionally split into three levels so the README does not imply either full parity or less support than the code actually has.
 
-Supported or partially supported:
+### Compatible now
 
-* `Background`
-* `WindowDimensions`
-* `IconSettings`
-* `ProgramListSettings`
-* `SearchBarSettings`, partial behavior
-* `Button`
-* `Label`
-* basic command execution
-* basic image loading from the theme folder
-* RGBA transparency
-* shaped menu windows
-* legacy command mapping
+* `Background`, including dimensions derived from the actual image when available.
+* `WindowDimensions`.
+* `IconSettings`.
+* `ProgramListSettings`.
+* `Button`.
+  * `ImageBack` as the permanent normal-state background.
+  * `Image` as the hover/selected overlay.
+  * `ButtonIcon` and `ButtonIconSel`.
+  * `ButtonIconX`, `ButtonIconY` and `ButtonIconSize`.
+  * `TextAlignment`.
+* Standalone legacy `Image` elements.
+* `Capabilities.HasSearch`.
+* `Capabilities.HasIcon`.
+* Basic `Label` rendering and a small safe subset of read-only legacy label commands.
+* RGBA transparency.
+* Alpha-based shaped menu windows and input shape handling.
+* Legacy command mapping to XFCE equivalents.
+* User avatar area and legacy icon-preview behavior.
+* Legacy top/bottom orientation.
+* Real launcher anchoring through Kesu, including horizontal button position.
+* Separate Menu / Button / Sound / Icon theme selection.
+* Import of legacy theme packages.
 
-Planned or incomplete:
+### Partially compatible
 
-* `Capabilities`
-* `Image`
-* `Tab`
-* complete icon preview behavior
-* complete sound event mapping
-* complete button/orb state integration
+* `SearchBarSettings`.
+  * Position, dimensions and search behavior work.
+  * `TextColor`, `BackColor`, `BorderColor` and `RoundAngle` are read by the compatibility layer.
+  * The modern GTK entry does not yet reproduce every Cairo visual detail of the original widget.
+* `Tab`.
+  * Normal/selected assets and tab icons are supported by the modern renderer.
+  * Deprecated `IconX`, `IconY` and `IconSize` aliases are accepted.
+  * Full `TextAlignment` and `InvertTextColorOnSel` rendering parity is still incomplete.
+* `Label`.
+  * Markup, position and safe legacy command output are supported.
+  * `TextAlignment` is parsed, but exact original anchor/baseline behavior is still being completed.
+* `Capabilities.HasFadeTransition` is parsed, but full original fade-transition behavior is not yet reproduced.
+* Sound and icon themes work in common cases, but not every legacy event or theme-specific behavior is guaranteed.
+* Left/right panel edges can be used for launcher positioning, but legacy menu skins are not rotated 90 degrees.
+
+### Still pending
+
+* Selection and switching of multiple `<theme color="...">` variants.
+* Exact original Cairo search rendering.
+* Full `Tab` behavior parity.
+* Full `Label` alignment/baseline parity.
+* Every obscure or malformed GnoMenu XML variation.
+* Complete sound event mapping.
+* Complete theme export/management tooling.
+* Kesu support for GnoMenu button themes with `Top="1"` and their separate `<Top>` overlay window.
 
 ## Command mapping
 
@@ -464,23 +502,32 @@ The code is new. The inspiration is old.
 * Add recent applications.
 * Improve hover states.
 
+### Current compatibility work
+
+* Continue auditing original GnoMenu widget semantics against the GTK3 renderer.
+* Finish exact `Label` alignment/baseline behavior.
+* Finish `Tab` alignment and selected-text behavior.
+* Improve search visual parity without depending on the old GTK2/Cairo widget implementation.
+* Add legacy color-variant selection.
+* Continue integration with Kesu for native XFCE panel geometry and vintage button-theme behavior.
+
 ### Future
 
-* Avatar / user preview area.
-* Large app icon preview on hover.
-* More complete button/orb support.
+* Favorites.
+* Recent applications.
 * More complete sound support.
 * Theme export/import manager.
-* Possible native xfce4-panel plugin.
 * More complete GnoMenu compatibility.
 
 ## Current panel behavior
 
-XFCEMenu is currently designed and tested primarily as a classic Start Menu opened from a launcher placed on the **left side of a bottom XFCE panel**, similar to the traditional Windows/GnoMenu layout.
+With the compatibility bridge, Angujanú now supports both **bottom and top horizontal XFCE panels** using the original GnoMenu-style vertical orientation behavior.
 
-Other panel positions, such as top panels, right-side launchers or vertical panels, are not fully supported yet. In those cases the menu may still open, but the legacy skin layout is not vertically flipped or rearranged, so elements such as the user avatar remain in their original position.
+For a bottom panel, the legacy theme is rendered in its normal orientation. For a top panel, the main background is vertically flipped and the outer Y coordinates of the legacy menu regions, buttons, tabs, labels and standalone images are reflected. Internal text and icons remain upright.
 
-Better positioning support for additional panel layouts may be added later.
+When Angujanú is launched from the native **Kesu** XFCE panel plugin, Kesu passes the real launcher coordinates, size and panel edge. The menu therefore follows the button horizontally instead of always opening at the left side of the screen. The final position is clamped to the monitor work area so the menu does not run off-screen.
+
+Left and right panel edges can be used for placement, but the legacy skin itself is not rotated 90 degrees. Full vertical-panel skin rotation is not currently a compatibility goal because it was not equivalent to GnoMenu's original top/bottom theme-orientation mechanism.
 
 ## License
 
