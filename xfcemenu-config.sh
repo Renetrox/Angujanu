@@ -177,6 +177,7 @@ select_theme_from_dir() {
 
 select_menu_theme() {
     local current options path name st selected status action preview
+    [ -d "$MENU_THEMES_DIR" ] || { if [ "$UI_LANG" = es ]; then msg Error "No se encontró la carpeta:\n\n$MENU_THEMES_DIR"; else msg Error "Folder not found:\n\n$MENU_THEMES_DIR"; fi; return; }
     while true; do
         current="$(get_ini_value theme menu_theme)"; options=()
         while IFS= read -r path; do
@@ -229,11 +230,27 @@ select_icon_source() {
 toggle_sounds() {
     local current status; current="$(get_ini_value behavior play_sounds)"
     if [ "$current" = true ]; then
-        [ "$UI_LANG" = es ] && dialog --title Sonidos --yesno 'Los sonidos están ACTIVADOS.\n\n¿Quieres desactivarlos?' 10 60 || dialog --title Sounds --yesno 'Sounds are ENABLED.\n\nDo you want to disable them?' 10 60; status=$?
-        if [ "$status" -eq 0 ]; then set_ini_value behavior play_sounds false; [ "$UI_LANG" = es ] && msg Sonidos 'Sonidos desactivados.' || msg Sounds 'Sounds disabled.'; fi
+        if [ "$UI_LANG" = es ]; then
+            dialog --title Sonidos --yesno 'Los sonidos están ACTIVADOS.\n\n¿Quieres desactivarlos?' 10 60
+        else
+            dialog --title Sounds --yesno 'Sounds are ENABLED.\n\nDo you want to disable them?' 10 60
+        fi
+        status=$?
+        if [ "$status" -eq 0 ]; then
+            set_ini_value behavior play_sounds false
+            if [ "$UI_LANG" = es ]; then msg Sonidos 'Sonidos desactivados.'; else msg Sounds 'Sounds disabled.'; fi
+        fi
     else
-        [ "$UI_LANG" = es ] && dialog --title Sonidos --yesno 'Los sonidos están DESACTIVADOS.\n\n¿Quieres activarlos?' 10 60 || dialog --title Sounds --yesno 'Sounds are DISABLED.\n\nDo you want to enable them?' 10 60; status=$?
-        if [ "$status" -eq 0 ]; then set_ini_value behavior play_sounds true; [ "$UI_LANG" = es ] && msg Sonidos 'Sonidos activados.' || msg Sounds 'Sounds enabled.'; fi
+        if [ "$UI_LANG" = es ]; then
+            dialog --title Sonidos --yesno 'Los sonidos están DESACTIVADOS.\n\n¿Quieres activarlos?' 10 60
+        else
+            dialog --title Sounds --yesno 'Sounds are DISABLED.\n\nDo you want to enable them?' 10 60
+        fi
+        status=$?
+        if [ "$status" -eq 0 ]; then
+            set_ini_value behavior play_sounds true
+            if [ "$UI_LANG" = es ]; then msg Sonidos 'Sonidos activados.'; else msg Sounds 'Sounds enabled.'; fi
+        fi
     fi
 }
 
@@ -251,12 +268,26 @@ edit_config() {
 
 reset_config() {
     local status
-    [ "$UI_LANG" = es ] && dialog --title 'Restaurar configuración' --yesno 'Esto reemplazará tu config.ini por una configuración básica.\n\n¿Continuar?' 10 70 || dialog --title 'Reset configuration' --yesno 'This will replace config.ini with a basic configuration.\n\nContinue?' 10 70; status=$?
-    if [ "$status" -eq 0 ]; then create_default_config; set_ini_value interface config_language "$UI_LANG"; [ "$UI_LANG" = es ] && msg Restaurado 'Se restauró la configuración básica.' || msg Restored 'The basic configuration was restored.'; fi
+    if [ "$UI_LANG" = es ]; then
+        dialog --title 'Restaurar configuración' --yesno 'Esto reemplazará tu config.ini por una configuración básica.\n\n¿Continuar?' 10 70
+    else
+        dialog --title 'Reset configuration' --yesno 'This will replace config.ini with a basic configuration.\n\nContinue?' 10 70
+    fi
+    status=$?
+    if [ "$status" -eq 0 ]; then
+        create_default_config
+        set_ini_value interface config_language "$UI_LANG"
+        if [ "$UI_LANG" = es ]; then msg Restaurado 'Se restauró la configuración básica.'; else msg Restored 'The basic configuration was restored.'; fi
+    fi
 }
 
 test_xfcemenu() {
-    if [ -x "$BIN_FILE" ]; then "$BIN_FILE" & [ "$UI_LANG" = es ] && msg Prueba 'Se lanzó XFCEMenu.' || msg Test 'XFCEMenu was launched.'; else [ "$UI_LANG" = es ] && msg Error "No se encontró el lanzador:\n\n$BIN_FILE" || msg Error "Launcher not found:\n\n$BIN_FILE"; fi
+    if [ -x "$BIN_FILE" ]; then
+        "$BIN_FILE" &
+        if [ "$UI_LANG" = es ]; then msg Prueba 'Se lanzó XFCEMenu.'; else msg Test 'XFCEMenu was launched.'; fi
+    else
+        if [ "$UI_LANG" = es ]; then msg Error "No se encontró el lanzador:\n\n$BIN_FILE"; else msg Error "Launcher not found:\n\n$BIN_FILE"; fi
+    fi
 }
 
 main_menu() {
